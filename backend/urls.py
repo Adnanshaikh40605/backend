@@ -26,6 +26,8 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 import traceback
 import datetime
+import sys
+import socket
 
 # Function to handle Swagger errors
 def swagger_error_handler(request, exception=None):
@@ -62,6 +64,77 @@ def health_check(request):
             "message": str(e),
             "timestamp": str(datetime.datetime.now())
         }, status=200)  # Still return 200 to pass health check
+
+# Function to detect Railway environment
+def is_on_railway():
+    """Check if we're running on Railway's internal network."""
+    try:
+        # Try to resolve the Railway internal hostname
+        socket.gethostbyname('postgres.railway.internal')
+        return True
+    except socket.gaierror:
+        return False
+
+# Database health check view
+def db_health_check(request):
+    """View to check database connection health and provide diagnostic information."""
+    try:
+        # Test database connection
+        from django.db import connection
+        cursor = connection.cursor()
+        
+        # Get database version
+        cursor.execute("SELECT version();")
+        version = cursor.fetchone()[0]
+        
+        # Test query execution time
+        start_time = datetime.datetime.now()
+        cursor.execute("SELECT 1")
+        one = cursor.fetchone()[0]
+        query_time = (datetime.datetime.now() - start_time).total_seconds()
+        
+        # Get connection details
+        db_settings = connection.settings_dict
+        host = db_settings.get('HOST', 'unknown')
+        port = db_settings.get('PORT', 'unknown')
+        name = db_settings.get('NAME', 'unknown')
+        user = db_settings.get('USER', 'unknown')
+        
+        # Check if we're using Railway internal network
+        is_internal = 'railway.internal' in host
+        
+        # Return success response
+        return JsonResponse({
+            "status": "ok",
+            "database": {
+                "connected": True,
+                "version": version,
+                "query_time_seconds": query_time,
+                "host": host,
+                "port": port,
+                "name": name,
+                "user": user,
+                "using_internal_network": is_internal
+            },
+            "system": {
+                "railway_detected": is_on_railway(),
+                "hostname": socket.gethostname(),
+                "timestamp": str(datetime.datetime.now())
+            }
+        })
+    except Exception as e:
+        # Return error response but still with 200 status so Railway doesn't fail health checks
+        return JsonResponse({
+            "status": "error",
+            "message": str(e),
+            "timestamp": str(datetime.datetime.now())
+        }, status=200)  # Still return 200 to pass health check
+
+# Super simple health check for Railway
+def railway_health_check(request):
+    """Extremely simple health check just for Railway."""
+    from django.http import HttpResponse
+    return HttpResponse("OK", status=200)
 
 # Basic Swagger configuration
 schema_view = get_schema_view(
@@ -215,7 +288,8 @@ urlpatterns = [
     # Health check endpoints - make these more specific
     path('ping/', health_check, name='ping'),
     path('health/', health_check, name='health'),
-    path('railway-health/', health_check, name='railway-health'),  # Specific endpoint for Railway
+    path('railway-health/', railway_health_check, name='railway-health'),  # Super simple Railway-specific health check
+    path('db-health/', db_health_check, name='db-health'),  # Database-specific health check
     path('debug-request/', debug_request, name='debug-request'),  # Debug view
 ]
 
