@@ -31,10 +31,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-p4&t4m)l6oje8l8z9l2@lqy&#bwujg!81fc_pa8)+ec28dgrl3')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Setting DEBUG to True temporarily to see detailed error messages
-DEBUG = True
+# Get DEBUG from environment, default to False for production
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']  # Allow all hosts temporarily for debugging
+# Get ALLOWED_HOSTS from environment, or use default
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+
+# Get PORT from environment for Railway
+PORT = int(os.environ.get('PORT', 8000))
 
 
 # Application definition

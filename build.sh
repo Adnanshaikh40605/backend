@@ -15,6 +15,6 @@ python manage.py collectstatic --noinput
 
 # Run migrations
 echo "🔄 Running database migrations..."
-python manage.py migrate
+python manage.py migrate --noinput
 
 echo "✅ Build completed successfully!" 
