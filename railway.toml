@@ -6,7 +6,7 @@ buildCommand = "python manage.py collectstatic --noinput"
 startCommand = "gunicorn backend.wsgi:application"
 healthcheckPath = "/"
 healthcheckTimeout = 100
-restartPolicyType = "on-failure"
+restartPolicyType = "never"
 restartPolicyMaxRetries = 10
 
 [envs]
