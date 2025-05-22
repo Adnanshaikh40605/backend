@@ -12,7 +12,7 @@ The API supports Cross-Origin Resource Sharing (CORS) with the following configu
 - Allowed origins: 
   - `http://localhost:3000` (local development)
   - `https://backend-production-e49d6.up.railway.app` (backend)
-  - `https://blog-cms-frontend-ten.vercel.app` (frontend deployment)
+  - `https://frontend-pi-sable-69.vercel.app` (frontend deployment)
 - Credentials are allowed (important for CSRF)
 - All standard HTTP methods are supported (GET, POST, PUT, PATCH, DELETE, OPTIONS)
 

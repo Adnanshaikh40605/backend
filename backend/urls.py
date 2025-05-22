@@ -162,7 +162,7 @@ def welcome(request):
             <div class="container">
                 <h2>Links</h2>
                 <a href="/admin/" class="btn">Admin Panel</a>
-                <a href="https://blog-cms-frontend-ten.vercel.app/" class="btn">Frontend Website</a>
+                <a href="https://frontend-pi-sable-69.vercel.app/" class="btn">Frontend Website</a>
             </div>
             
             <div class="container">
@@ -174,7 +174,7 @@ def welcome(request):
             <div class="footer">
                 <p>Contact: <a href="mailto:skadnan40605@gmail.com">skadnan40605@gmail.com</a></p>
                 <p>Backend URL: <a href="https://backend-production-e49d6.up.railway.app/">https://backend-production-e49d6.up.railway.app/</a></p>
-                <p>Frontend URL: <a href="https://blog-cms-frontend-ten.vercel.app/">https://blog-cms-frontend-ten.vercel.app/</a></p>
+                <p>Frontend URL: <a href="https://frontend-pi-sable-69.vercel.app/">https://frontend-pi-sable-69.vercel.app/</a></p>
             </div>
         </body>
     </html>

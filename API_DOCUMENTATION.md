@@ -91,4 +91,4 @@ For endpoints that require authentication:
 For any questions or support regarding the API:
 - Email: skadnan40605@gmail.com
 - Backend URL: https://backend-production-e49d6.up.railway.app/
-- Frontend URL: https://blog-cms-frontend-ten.vercel.app/ 
+- Frontend URL: https://frontend-pi-sable-69.vercel.app/ 

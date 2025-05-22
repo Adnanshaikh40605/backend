@@ -83,7 +83,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # React dev
     "https://backend-production-e49d6.up.railway.app",  # backend self-call
     "http://backend-production-e49d6.up.railway.app",   # backend self-call non-https
-    "https://blog-cms-frontend-ten.vercel.app",  # Your frontend deployment
+    "https://frontend-pi-sable-69.vercel.app",  # Your frontend deployment
 ]
 
 # For development or when you're experiencing CSRF issues, you can temporarily use:
@@ -118,7 +118,7 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # Try to get frontend URL from environment
-FRONTEND_URL = os.environ.get('FRONTEND_URL', '')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://frontend-pi-sable-69.vercel.app')
 if FRONTEND_URL and FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
     CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
     # Also add without trailing slash if present
@@ -385,7 +385,7 @@ if not DEBUG:
     CSRF_TRUSTED_ORIGINS = [
         'https://backend-production-e49d6.up.railway.app',
         'http://backend-production-e49d6.up.railway.app',
-        'https://blog-cms-frontend-ten.vercel.app',
+        'https://frontend-pi-sable-69.vercel.app',
     ]
     
     # Add frontend URL to CSRF trusted origins if available
@@ -403,7 +403,7 @@ else:
     CSRF_TRUSTED_ORIGINS = [
         'https://backend-production-e49d6.up.railway.app',
         'http://backend-production-e49d6.up.railway.app',
-        'https://blog-cms-frontend-ten.vercel.app',
+        'https://frontend-pi-sable-69.vercel.app',
         'http://localhost:3000',
         'http://127.0.0.1:3000',
         'http://localhost:5173',
