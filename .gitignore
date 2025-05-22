@@ -34,10 +34,6 @@ media
 venv/
 ENV/
 
-# Environment files
-.env
-.env.*
-!env.example
 
 # VS Code
 .vscode/
@@ -63,10 +59,6 @@ ENV/
 /dist
 
 # misc
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 npm-debug.log*
 yarn-debug.log*
