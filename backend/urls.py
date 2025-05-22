@@ -36,13 +36,19 @@ def swagger_error_handler(request, exception=None):
         "traceback": tb
     }, status=500)
 
+# Health check view for Railway
+def health_check(request):
+    return JsonResponse({"status": "ok"})
+
 # Basic Swagger configuration
 schema_view = get_schema_view(
    openapi.Info(
       title="Blog CMS API",
       default_version='v1',
       description="API documentation for the Blog CMS platform",
+      terms_of_service="https://www.google.com/policies/terms/",
       contact=openapi.Contact(email="skadnan40605@gmail.com"),
+      license=openapi.License(name="BSD License"),
    ),
    public=True,
    permission_classes=(permissions.AllowAny,),
@@ -154,6 +160,11 @@ urlpatterns = [
     
     # Swagger documentation URL (only keeping the Swagger UI)
     path('api/docs/', schema_view_swagger_ui, name='schema-swagger-ui'),
+    
+    # Health check endpoints
+    path('ping/', health_check),
+    path('health/', health_check),
+    path('', health_check),  # Root path for Railway health checks
 ]
 
 # Serve media files in development
@@ -165,6 +176,7 @@ if settings.DEBUG:
             'document_root': settings.MEDIA_ROOT,
         }),
     ]
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 # For production media serving (not recommended for high-traffic sites, but works for demos)
 else:
     urlpatterns += [
