@@ -3,7 +3,7 @@ builder = "nixpacks"
 buildCommand = "python manage.py collectstatic --noinput"
 
 [deploy]
-healthcheckPath = "/ping/"
+healthcheckPath = "/railway-health/"
 healthcheckTimeout = 100
 restartPolicyType = "never"
 restartPolicyMaxRetries = 10

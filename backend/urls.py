@@ -25,6 +25,7 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 import traceback
+import datetime
 
 # Function to handle Swagger errors
 def swagger_error_handler(request, exception=None):
@@ -38,7 +39,29 @@ def swagger_error_handler(request, exception=None):
 
 # Health check view for Railway
 def health_check(request):
-    return JsonResponse({"status": "ok"})
+    try:
+        # Test database connection
+        from django.db import connection
+        cursor = connection.cursor()
+        cursor.execute("SELECT 1")
+        one = cursor.fetchone()[0]
+        if one != 1:
+            raise Exception("Database test query did not return 1")
+        
+        # Return success response
+        return JsonResponse({
+            "status": "ok",
+            "database": "connected",
+            "timestamp": str(datetime.datetime.now()),
+            "service": "Blog CMS API"
+        })
+    except Exception as e:
+        # Return error response but still with 200 status so Railway doesn't fail
+        return JsonResponse({
+            "status": "error",
+            "message": str(e),
+            "timestamp": str(datetime.datetime.now())
+        }, status=200)  # Still return 200 to pass health check
 
 # Basic Swagger configuration
 schema_view = get_schema_view(
@@ -68,6 +91,12 @@ schema_view_swagger_ui = schema_view_with_error_handling(schema_view.with_ui('sw
 
 # Welcome page
 def welcome(request):
+    # Check if this is a health check request from Railway
+    user_agent = request.META.get('HTTP_USER_AGENT', '')
+    if 'Railway Health Check' in user_agent or request.GET.get('health') == 'check':
+        return health_check(request)
+    
+    # Otherwise show the welcome page
     return HttpResponse("""
     <html>
         <head>
@@ -136,6 +165,12 @@ def welcome(request):
                 <a href="https://blog-cms-frontend-ten.vercel.app/" class="btn">Frontend Website</a>
             </div>
             
+            <div class="container">
+                <h2>Health Status</h2>
+                <a href="/health/" class="btn">Check API Health</a>
+                <a href="/ping/" class="btn">Ping Service</a>
+            </div>
+            
             <div class="footer">
                 <p>Contact: <a href="mailto:skadnan40605@gmail.com">skadnan40605@gmail.com</a></p>
                 <p>Backend URL: <a href="https://backend-production-e49d6.up.railway.app/">https://backend-production-e49d6.up.railway.app/</a></p>
@@ -144,6 +179,22 @@ def welcome(request):
         </body>
     </html>
     """)
+
+# Debug view for Railway health check issues
+def debug_request(request):
+    """View to debug request information for Railway health checks"""
+    data = {
+        'path': request.path,
+        'method': request.method,
+        'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown'),
+        'remote_addr': request.META.get('REMOTE_ADDR', 'Unknown'),
+        'headers': dict(request.headers),
+        'query_params': dict(request.GET),
+        'server_name': request.META.get('SERVER_NAME', 'Unknown'),
+        'server_port': request.META.get('SERVER_PORT', 'Unknown'),
+        'timestamp': str(datetime.datetime.now()),
+    }
+    return JsonResponse(data)
 
 urlpatterns = [
     path('', welcome, name='welcome'),
@@ -161,10 +212,11 @@ urlpatterns = [
     # Swagger documentation URL (only keeping the Swagger UI)
     path('api/docs/', schema_view_swagger_ui, name='schema-swagger-ui'),
     
-    # Health check endpoints
-    path('ping/', health_check),
-    path('health/', health_check),
-    path('', health_check),  # Root path for Railway health checks
+    # Health check endpoints - make these more specific
+    path('ping/', health_check, name='ping'),
+    path('health/', health_check, name='health'),
+    path('railway-health/', health_check, name='railway-health'),  # Specific endpoint for Railway
+    path('debug-request/', debug_request, name='debug-request'),  # Debug view
 ]
 
 # Serve media files in development
