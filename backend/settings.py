@@ -77,8 +77,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
     "http://localhost:5173",
     "http://localhost:3000",  # React dev
-    "https://web-production-f03ff.up.railway.app",  # backend self-call
-    "http://web-production-f03ff.up.railway.app",   # backend self-call non-https
+    "https://backend-production-e49d6.up.railway.app",  # backend self-call
+    "http://backend-production-e49d6.up.railway.app",   # backend self-call non-https
     "https://blog-cms-frontend-ten.vercel.app",  # Your frontend deployment
 ]
 
@@ -151,11 +151,11 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # PostgreSQL database configuration
 DATABASE_URL = os.environ.get(
     'DATABASE_URL', 
-    'postgresql://postgres:TLgjKUteroESAXyyKSkzZeFBRitnmOLq@ballast.proxy.rlwy.net:17918/railway'
+    'postgresql://postgres:DGQzwoKpJuWRfgLKzDGeuUDcfRnRkAzW@switchyard.proxy.rlwy.net:47148/railway'
 )
 
 # Alternative internal connection string (for internal Railway network)
-INTERNAL_DB_URL = 'postgresql://postgres:TLgjKUteroESAXyyKSkzZeFBRitnmOLq@postgres.railway.internal:5432/railway'
+INTERNAL_DB_URL = 'postgresql://postgres:DGQzwoKpJuWRfgLKzDGeuUDcfRnRkAzW@postgres.railway.internal:5432/railway'
 
 # Function to mask password for logging
 def mask_password(url):
@@ -181,9 +181,9 @@ if DATABASE_URL:
                 'ENGINE': 'django.db.backends.postgresql',
                 'NAME': 'railway',
                 'USER': 'postgres',
-                'PASSWORD': 'TLgjKUteroESAXyyKSkzZeFBRitnmOLq',
-                'HOST': 'ballast.proxy.rlwy.net',
-                'PORT': '17918',
+                'PASSWORD': 'DGQzwoKpJuWRfgLKzDGeuUDcfRnRkAzW',
+                'HOST': 'switchyard.proxy.rlwy.net',
+                'PORT': '47148',
                 'CONN_MAX_AGE': 60,
                 'OPTIONS': {
                     'connect_timeout': 5,
@@ -198,9 +198,9 @@ else:
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': 'railway',
             'USER': 'postgres',
-            'PASSWORD': 'TLgjKUteroESAXyyKSkzZeFBRitnmOLq',
-            'HOST': 'ballast.proxy.rlwy.net',
-            'PORT': '17918',
+            'PASSWORD': 'DGQzwoKpJuWRfgLKzDGeuUDcfRnRkAzW',
+            'HOST': 'switchyard.proxy.rlwy.net',
+            'PORT': '47148',
             'CONN_MAX_AGE': 60,
             'OPTIONS': {
                 'connect_timeout': 5,
@@ -379,8 +379,8 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     # Add Railway app domain and frontend domain to CSRF trusted origins
     CSRF_TRUSTED_ORIGINS = [
-        'https://web-production-f03ff.up.railway.app',
-        'http://web-production-f03ff.up.railway.app',
+        'https://backend-production-e49d6.up.railway.app',
+        'http://backend-production-e49d6.up.railway.app',
         'https://blog-cms-frontend-ten.vercel.app',
     ]
     
@@ -397,8 +397,8 @@ if not DEBUG:
 else:
     # Even in debug mode, we need CSRF trusted origins for the admin interface
     CSRF_TRUSTED_ORIGINS = [
-        'https://web-production-f03ff.up.railway.app',
-        'http://web-production-f03ff.up.railway.app',
+        'https://backend-production-e49d6.up.railway.app',
+        'http://backend-production-e49d6.up.railway.app',
         'https://blog-cms-frontend-ten.vercel.app',
         'http://localhost:3000',
         'http://127.0.0.1:3000',
