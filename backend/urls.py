@@ -271,6 +271,16 @@ def debug_request(request):
     }
     return JsonResponse(data)
 
+# Favicon handler
+def favicon_view(request):
+    """Handle favicon requests to prevent 500 errors"""
+    # In production, use the collected static favicon from rest_framework
+    if not settings.DEBUG:
+        return HttpResponse(status=204)  # Return 204 No Content
+    
+    # In development, just return 204 No Content
+    return HttpResponse(status=204)
+
 urlpatterns = [
     path('', lambda request: render(request, 'home.html', {
         'title': 'Blog CMS API',
@@ -296,6 +306,9 @@ urlpatterns = [
     
     # Swagger documentation URL (only keeping the Swagger UI)
     path('api/docs/', schema_view_swagger_ui, name='schema-swagger-ui'),
+    
+    # Favicon URL to prevent 500 errors
+    path('favicon.ico', favicon_view, name='favicon'),
     
     # Health check endpoints - make these more specific
     path('ping/', health_check, name='ping'),
