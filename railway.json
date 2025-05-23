@@ -5,8 +5,8 @@
     "buildCommand": "python manage.py collectstatic --noinput"
   },
   "deploy": {
-    "startCommand": "gunicorn backend.wsgi:application --log-file -",
-    "healthcheckPath": "/admin/",
+    "startCommand": "gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --log-file -",
+    "healthcheckPath": "/railway-health/",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10

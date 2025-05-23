@@ -316,9 +316,9 @@ urlpatterns = [
     path('railway-health/', lambda request: JsonResponse({
         'status': 'ok',
         'timestamp': timezone.now().isoformat(),
-        'environment': 'development',
-        'message': 'API is running in development mode'
-    })),
+        'service': 'Blog CMS API',
+        'version': '1.0.0'
+    }, status=200), name='railway-health'),  # Simple dedicated Railway health check
     path('db-health/', db_health_check, name='db-health'),  # Database-specific health check
     path('debug-request/', debug_request, name='debug-request'),  # Debug view
 ]
