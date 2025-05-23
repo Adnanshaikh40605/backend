@@ -18,7 +18,13 @@ import secrets
 import dj_database_url
 
 # Load environment variables
-load_dotenv()
+# Try to load .env.local first (for local development), then fall back to .env
+if os.path.exists(os.path.join(BASE_DIR, '.env.local')):
+    load_dotenv(os.path.join(BASE_DIR, '.env.local'))
+    print("Loaded environment from .env.local")
+else:
+    load_dotenv()
+    print("Loaded environment from .env")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -135,18 +141,39 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Use DATABASE_URL environment variable if available (Railway provides this)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-if DATABASE_URL:
+# Function to detect if we're running on Railway
+def is_running_on_railway():
+    """Check if we're running on Railway by checking for Railway-specific hostnames"""
+    try:
+        # Railway sets DATABASE_URL and typically contains 'railway' in the hostname
+        if DATABASE_URL and ('railway' in DATABASE_URL.lower() or 'postgres.railway.internal' in DATABASE_URL.lower()):
+            # Try to resolve Railway's internal hostname to confirm
+            import socket
+            try:
+                socket.gethostbyname('postgres.railway.internal')
+                return True
+            except socket.gaierror:
+                # If we can't resolve the hostname, we're likely not on Railway
+                return False
+        return False
+    except:
+        return False
+
+# Configure database based on environment
+if DATABASE_URL and is_running_on_railway():
+    # We're on Railway, use PostgreSQL
     DATABASES = {
         'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
     }
 else:
-    # Use SQLite for local development
+    # We're in local development, use SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+    print("Using SQLite database for local development")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
