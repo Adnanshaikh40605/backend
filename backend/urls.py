@@ -28,6 +28,8 @@ import traceback
 import datetime
 import sys
 import socket
+from django.utils import timezone
+from django.shortcuts import render
 
 # Function to handle Swagger errors
 def swagger_error_handler(request, exception=None):
@@ -270,7 +272,17 @@ def debug_request(request):
     return JsonResponse(data)
 
 urlpatterns = [
-    path('', welcome, name='welcome'),
+    path('', lambda request: render(request, 'home.html', {
+        'title': 'Blog CMS API',
+        'description': 'Welcome to the Blog CMS API',
+        'links': [
+            {'url': '/admin/', 'title': 'Admin Dashboard', 'description': 'Manage blog content'},
+            {'url': '/api/docs/', 'title': 'API Documentation', 'description': 'Interactive API documentation'},
+            {'url': '/api/schema/', 'title': 'API Schema', 'description': 'OpenAPI schema'},
+            {'url': 'http://localhost:5173/', 'title': 'Frontend Website', 'description': 'View the frontend website'},
+        ]
+    }), name='home'),
+    
     path('admin/', admin.site.urls),
     
     # Direct access to the comments counts endpoint
@@ -287,22 +299,43 @@ urlpatterns = [
     
     # Health check endpoints - make these more specific
     path('ping/', health_check, name='ping'),
-    path('health/', health_check, name='health'),
-    path('railway-health/', railway_health_check, name='railway-health'),  # Super simple Railway-specific health check
+    path('health/', lambda request: JsonResponse({'status': 'ok', 'message': 'API is running'})),
+    path('railway-health/', lambda request: JsonResponse({
+        'status': 'ok',
+        'timestamp': timezone.now().isoformat(),
+        'environment': 'development',
+        'message': 'API is running in development mode'
+    })),
     path('db-health/', db_health_check, name='db-health'),  # Database-specific health check
     path('debug-request/', debug_request, name='debug-request'),  # Debug view
 ]
 
-# Serve media files in development
+# Custom 404 handler
+handler404 = 'backend.views.custom_404'
+
+# Add debug toolbar URLs in debug mode
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    # Add this to serve CKEditor 5 media files in development
     urlpatterns += [
-        re_path(r'^media/(?P<path>.*)$', serve, {
-            'document_root': settings.MEDIA_ROOT,
-        }),
+        path('__debug__/', include('debug_toolbar.urls')),
     ]
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    
+    # Serve media files in development
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    
+    # Add a simple diagnostic endpoint in debug mode
+    urlpatterns += [
+        path('debug-info/', lambda request: render(request, 'debug_info.html', {
+            'title': 'Debug Information',
+            'debug': settings.DEBUG,
+            'database': {
+                'engine': settings.DATABASES['default']['ENGINE'],
+                'name': settings.DATABASES['default']['NAME'],
+            },
+            'media_url': settings.MEDIA_URL,
+            'static_url': settings.STATIC_URL,
+            'installed_apps': settings.INSTALLED_APPS,
+        })),
+    ]
 # For production media serving (not recommended for high-traffic sites, but works for demos)
 else:
     urlpatterns += [

@@ -15,8 +15,6 @@ import os
 import re
 from dotenv import load_dotenv
 import secrets
-import dj_database_url
-import socket
 
 # Load environment variables
 load_dotenv()
@@ -29,17 +27,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-p4&t4m)l6oje8l8z9l2@lqy&#bwujg!81fc_pa8)+ec28dgrl3')
+SECRET_KEY = 'django-insecure-p4&t4m)l6oje8l8z9l2@lqy&#bwujg!81fc_pa8)+ec28dgrl3'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Get DEBUG from environment, default to False for production
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+DEBUG = True
 
-# Get ALLOWED_HOSTS from environment, or use default
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
-
-# Get PORT from environment for Railway
-PORT = int(os.environ.get('PORT', 8000))
+# Allow only localhost
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -52,7 +46,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # "corsheaders",
     
     # Third-party apps
     'rest_framework',
@@ -77,17 +70,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# CORS settings
+# CORS settings for local development
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
     "http://localhost:5173",
     "http://localhost:3000",  # React dev
-    "https://backend-production-e49d6.up.railway.app",  # backend self-call
-    "http://backend-production-e49d6.up.railway.app",   # backend self-call non-https
-    "https://frontend-pi-sable-69.vercel.app",  # Your frontend deployment
 ]
 
-# For development or when you're experiencing CSRF issues, you can temporarily use:
+# For development
 CORS_ALLOW_ALL_ORIGINS = True  # Enable all CORS for debugging
 
 # Enable credentials in CORS requests (important for CSRF)
@@ -118,16 +108,8 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# Try to get frontend URL from environment
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://frontend-pi-sable-69.vercel.app')
-if FRONTEND_URL and FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
-    # Also add without trailing slash if present
-    if FRONTEND_URL.endswith('/'):
-        CORS_ALLOWED_ORIGINS.append(FRONTEND_URL[:-1])
-    # Also add with trailing slash if not present
-    else:
-        CORS_ALLOWED_ORIGINS.append(FRONTEND_URL + '/')
+# Frontend URL for local development
+FRONTEND_URL = 'http://localhost:5173'
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -153,90 +135,13 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# PostgreSQL database configuration
-DATABASE_URL = os.environ.get(
-    'DATABASE_URL', 
-    'postgresql://postgres:DGQzwoKpJuWRfgLKzDGeuUDcfRnRkAzW@switchyard.proxy.rlwy.net:47148/railway'
-)
-
-# Alternative internal connection string (for internal Railway network)
-INTERNAL_DB_URL = 'postgresql://postgres:DGQzwoKpJuWRfgLKzDGeuUDcfRnRkAzW@postgres.railway.internal:5432/railway'
-
-# Function to mask password for logging
-def mask_password(url):
-    if not url:
-        return "No database URL provided"
-    try:
-        # Use regex to mask the password
-        return re.sub(r'(://[^:]+:)([^@]+)(@)', r'\1*****\3', url)
-    except Exception:
-        return "Invalid database URL format"
-
-# Check if we're running on Railway's internal network
-def is_on_railway():
-    try:
-        # Try to resolve the Railway internal hostname
-        socket.gethostbyname('postgres.railway.internal')
-        return True
-    except socket.gaierror:
-        return False
-
-# If we're on Railway, use the internal connection string for better performance
-if is_on_railway():
-    print("Detected Railway environment, using internal database connection")
-    connection_url = INTERNAL_DB_URL
-else:
-    # Otherwise use the external URL
-    connection_url = DATABASE_URL
-
-# Parse the connection URL with dj_database_url
-try:
-    DATABASES = {'default': dj_database_url.parse(connection_url, conn_max_age=60)}
-    print(f"Using database connection: {mask_password(connection_url)}")
-except Exception as e:
-    print(f"Error parsing database URL: {str(e)}")
-    # Fall back to direct configuration
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'railway',
-            'USER': 'postgres',
-            'PASSWORD': 'DGQzwoKpJuWRfgLKzDGeuUDcfRnRkAzW',
-            'HOST': 'switchyard.proxy.rlwy.net',
-            'PORT': '47148',
-            'CONN_MAX_AGE': 60,
-            'OPTIONS': {
-                'connect_timeout': 5,
-            },
-        }
+# Use SQLite for local development
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-    print("Falling back to direct database configuration.")
-
-# Print database configuration for debugging
-print(f"Database engine: {DATABASES['default'].get('ENGINE', 'Not specified')}")
-print(f"Database name: {DATABASES['default'].get('NAME', 'Not specified')}")
-print(f"Database host: {DATABASES['default'].get('HOST', 'Not specified')}")
-print(f"Database port: {DATABASES['default'].get('PORT', 'Not specified')}")
-
-# Test database connection function (to be called later, not during initialization)
-def test_database_connection():
-    import sys
-    try:
-        from django.db import connection
-        cursor = connection.cursor()
-        cursor.execute("SELECT 1")
-        print("Database connection test successful!")
-        return True
-    except Exception as e:
-        print(f"ERROR connecting to database: {str(e)}", file=sys.stderr)
-        print(f"Database connection test failed!", file=sys.stderr)
-        # Keep the application running even if initial connection fails
-        # This allows for troubleshooting through the diagnostic endpoints
-        return False
-
-# Don't run this during app initialization, as it leads to the warning
-# We'll call this function from a management command or view instead
-
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -371,43 +276,13 @@ REST_FRAMEWORK = {
     ],
 }
 
-# Security settings for production
-if not DEBUG:
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SECURE_SSL_REDIRECT = False  # Changed to False to rule out potential redirect issues
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    # Add Railway app domain and frontend domain to CSRF trusted origins
-    CSRF_TRUSTED_ORIGINS = [
-        'https://backend-production-e49d6.up.railway.app',
-        'http://backend-production-e49d6.up.railway.app',
-        'https://frontend-pi-sable-69.vercel.app',
-    ]
-    
-    # Add frontend URL to CSRF trusted origins if available
-    if FRONTEND_URL:
-        frontend_domain = FRONTEND_URL
-        if frontend_domain.startswith('http://'):
-            frontend_domain = 'http://' + frontend_domain.split('http://')[1]
-        elif frontend_domain.startswith('https://'):
-            frontend_domain = 'https://' + frontend_domain.split('https://')[1]
-        
-        if frontend_domain not in CSRF_TRUSTED_ORIGINS:
-            CSRF_TRUSTED_ORIGINS.append(frontend_domain)
-else:
-    # Even in debug mode, we need CSRF trusted origins for the admin interface
-    CSRF_TRUSTED_ORIGINS = [
-        'https://backend-production-e49d6.up.railway.app',
-        'http://backend-production-e49d6.up.railway.app',
-        'https://frontend-pi-sable-69.vercel.app',
-        'http://localhost:3000',
-        'http://127.0.0.1:3000',
-        'http://localhost:5173',
-        'http://localhost:5174',
-    ]
+# CSRF trusted origins for local development
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://localhost:5174',
+]
 
 # Jazzmin Admin Theme Settings
 JAZZMIN_SETTINGS = {
