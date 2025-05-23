@@ -282,12 +282,9 @@ REST_FRAMEWORK = {
 }
 
 # CSRF trusted origins for local development
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:5173',
-    'http://localhost:5174',
-]
+# First get from environment variable, if not set use defaults
+csrf_trusted_origins_str = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://localhost:5174')
+CSRF_TRUSTED_ORIGINS = csrf_trusted_origins_str.split(',')
 
 # Jazzmin Admin Theme Settings
 JAZZMIN_SETTINGS = {
