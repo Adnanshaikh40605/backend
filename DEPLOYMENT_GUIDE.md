@@ -61,23 +61,10 @@ This guide will help you deploy the Blog CMS application with the backend on Rai
 1. **Prepare your repository**
    - Ensure your frontend code is in a Git repository
    - Make sure you have the following files:
-     - `vercel.json` (with proper rewrites to your backend)
+     - `vercel.json`
      - `package.json` (with build scripts)
 
-2. **Update the vercel.json file**
-   - Edit the `vercel.json` file to update the backend URL:
-   ```json
-   {
-     "rewrites": [
-       { "source": "/api/(.*)", "destination": "https://your-railway-app-url.railway.app/api/$1" },
-       { "source": "/media/(.*)", "destination": "https://your-railway-app-url.railway.app/media/$1" },
-       { "source": "/(.*)", "destination": "/index.html" }
-     ],
-     ...
-   }
-   ```
-
-3. **Create a new project on Vercel**
+2. **Create a new project on Vercel**
    - Go to [Vercel Dashboard](https://vercel.com/dashboard)
    - Click "Add New" → "Project"
    - Import your Git repository
@@ -86,9 +73,9 @@ This guide will help you deploy the Blog CMS application with the backend on Rai
      - Build Command: `npm run build`
      - Output Directory: `dist`
 
-4. **Configure environment variables**
+3. **Configure environment variables**
    - In your Vercel project, go to "Settings" → "Environment Variables"
-   - Add the following variables (refer to `frontend/env.production`):
+   - Add the following variables:
    ```
    VITE_API_BASE_URL=https://your-railway-app-url.railway.app
    VITE_MEDIA_URL=https://your-railway-app-url.railway.app/media/
@@ -96,7 +83,7 @@ This guide will help you deploy the Blog CMS application with the backend on Rai
    VITE_DEBUG=false
    ```
 
-5. **Deploy**
+4. **Deploy**
    - Click "Deploy"
    - Vercel will build and deploy your frontend application
 
@@ -110,6 +97,7 @@ This guide will help you deploy the Blog CMS application with the backend on Rai
 2. **Test the connection**
    - Visit your Vercel frontend URL
    - Verify that API requests to the backend are working correctly
+   - Check the browser console for any CORS errors
 
 ## Troubleshooting
 
@@ -122,11 +110,17 @@ This guide will help you deploy the Blog CMS application with the backend on Rai
 - Check Vercel build logs for any errors
 - Verify API URLs are correctly configured
 - Check browser console for CORS errors
+- Make sure environment variables are properly set in Vercel
 
 ### CORS Issues
 - Ensure `CORS_ALLOWED_ORIGINS` includes your frontend URL
 - Verify `CSRF_TRUSTED_ORIGINS` is properly configured
 - Check that your frontend is sending the correct headers
+
+### Environment Variable Issues
+- Make sure you've set the environment variables in the Vercel dashboard
+- If using a custom domain, include it in the CORS settings
+- Don't use placeholders in your code; rely on the environment variables
 
 ## Maintenance
 
