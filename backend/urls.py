@@ -30,6 +30,7 @@ import sys
 import socket
 from django.utils import timezone
 from django.shortcuts import render
+from .test_views import simple_test
 
 # Function to handle Swagger errors
 def swagger_error_handler(request, exception=None):
@@ -441,6 +442,11 @@ def html_debug_view(request):
     
     return HttpResponse(html)
 
+# Extremely simple test view
+def test_view(request):
+    """Extremely simple test view that returns plain text"""
+    return HttpResponse("Hello, this is a test view.", content_type="text/plain")
+
 urlpatterns = [
     path('', index_view, name='home'),
     path('welcome/', welcome, name='welcome'),
@@ -474,6 +480,8 @@ urlpatterns = [
     path('db-health/', db_health_check, name='db-health'),  # Database-specific health check
     path('debug-request/', debug_request, name='debug-request'),  # Debug view
     path('debug/', html_debug_view, name='debug'),  # Simple HTML debug view
+    path('test/', test_view, name='test'),  # Extremely simple test view
+    path('simple/', simple_test, name='simple_test'),  # View from test_views.py
 ]
 
 # Custom 404 handler
