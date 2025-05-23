@@ -53,4 +53,7 @@ urlpatterns = [
     
     # Add a direct pattern matcher to ensure the full path works
     re_path(r'^comments/counts/?$', views.comment_counts, name='comment-counts-regex'),
+    
+    # Railway health check endpoint
+    path('railway-health/', views.health_check, name='railway-health'),
 ] 

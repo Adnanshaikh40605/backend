@@ -26,6 +26,12 @@ from .serializers import (
 # Setup logger
 logger = logging.getLogger(__name__)
 
+def health_check(request):
+    """
+    Simple health check endpoint for Railway deployment
+    """
+    return JsonResponse({"status": "ok"})
+
 @swagger_auto_schema(tags=['Posts'])
 class BlogPostViewSet(viewsets.ModelViewSet):
     """
