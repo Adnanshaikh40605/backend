@@ -282,16 +282,7 @@ def favicon_view(request):
     return HttpResponse(status=204)
 
 urlpatterns = [
-    path('', lambda request: render(request, 'home.html', {
-        'title': 'Blog CMS API',
-        'description': 'Welcome to the Blog CMS API',
-        'links': [
-            {'url': '/admin/', 'title': 'Admin Dashboard', 'description': 'Manage blog content'},
-            {'url': '/api/docs/', 'title': 'API Documentation', 'description': 'Interactive API documentation'},
-            {'url': '/api/schema/', 'title': 'API Schema', 'description': 'OpenAPI schema'},
-            {'url': 'http://localhost:5173/', 'title': 'Frontend Website', 'description': 'View the frontend website'},
-        ]
-    }), name='home'),
+    path('', welcome, name='home'),
     
     path('admin/', admin.site.urls),
     
@@ -347,6 +338,23 @@ if settings.DEBUG:
             'media_url': settings.MEDIA_URL,
             'static_url': settings.STATIC_URL,
             'installed_apps': settings.INSTALLED_APPS,
+        })),
+        # Add a detailed request debug view
+        path('debug/', lambda request: JsonResponse({
+            'path': request.path,
+            'method': request.method,
+            'GET': dict(request.GET),
+            'POST': dict(request.POST),
+            'COOKIES': dict(request.COOKIES),
+            'META': {k: str(v) for k, v in request.META.items() if k.startswith('HTTP_') or k in ['REMOTE_ADDR', 'SERVER_NAME']},
+            'headers': dict(request.headers),
+            'is_secure': request.is_secure(),
+            'is_ajax': request.headers.get('x-requested-with') == 'XMLHttpRequest',
+            'user': str(request.user),
+            'session': {k: str(v) for k, v in request.session.items()},
+            'csrf_cookie': request.COOKIES.get(settings.CSRF_COOKIE_NAME, 'Not set'),
+            'csrf_trusted_origins': settings.CSRF_TRUSTED_ORIGINS,
+            'allowed_hosts': settings.ALLOWED_HOSTS,
         })),
     ]
 # For production media serving (not recommended for high-traffic sites, but works for demos)
