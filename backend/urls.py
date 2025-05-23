@@ -273,16 +273,177 @@ def debug_request(request):
 
 # Favicon handler
 def favicon_view(request):
-    """Handle favicon requests to prevent 500 errors"""
-    # In production, use the collected static favicon from rest_framework
-    if not settings.DEBUG:
-        return HttpResponse(status=204)  # Return 204 No Content
+    """Handle favicon requests to prevent errors"""
+    # Just return a simple response for now
+    return HttpResponse("No favicon", content_type="text/plain")
+
+# Simple index view that doesn't use templates
+def index_view(request):
+    """Simple index view that returns basic HTML without using templates"""
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Blog CMS API</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                color: #333;
+            }
+            h1 {
+                color: #2C3E50;
+                border-bottom: 2px solid #3498DB;
+                padding-bottom: 10px;
+            }
+            .card {
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 15px;
+                margin-bottom: 20px;
+                background-color: #f9f9f9;
+            }
+            .btn {
+                display: inline-block;
+                background-color: #3498DB;
+                color: white;
+                padding: 10px 15px;
+                text-decoration: none;
+                border-radius: 4px;
+                margin-right: 10px;
+                margin-bottom: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Blog CMS API</h1>
+        <div class="card">
+            <p>This is the API server for the Blog CMS application.</p>
+            <p>Use the links below to explore the API:</p>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h2>Quick Links</h2>
+            <a href="/admin/" class="btn">Admin Dashboard</a>
+            <a href="/api/docs/" class="btn">API Documentation</a>
+            <a href="/debug/" class="btn">Debug Information</a>
+        </div>
+    </body>
+    </html>
+    """
+    return HttpResponse(html)
+
+# Simple HTML debug view
+def html_debug_view(request):
+    """Debug view that returns HTML instead of JSON for easier viewing in browser"""
+    debug_info = {
+        'path': request.path,
+        'method': request.method,
+        'GET': dict(request.GET),
+        'COOKIES': dict(request.COOKIES),
+        'headers': dict(request.headers),
+        'is_secure': request.is_secure(),
+        'user': str(request.user),
+        'csrf_cookie': request.COOKIES.get(settings.CSRF_COOKIE_NAME, 'Not set'),
+        'csrf_trusted_origins': settings.CSRF_TRUSTED_ORIGINS,
+        'allowed_hosts': settings.ALLOWED_HOSTS,
+        'debug_mode': settings.DEBUG,
+    }
     
-    # In development, just return 204 No Content
-    return HttpResponse(status=204)
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Debug Information</title>
+        <style>
+            body { font-family: sans-serif; padding: 20px; }
+            h1 { color: #333; }
+            .section { margin-bottom: 20px; border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+            .key { font-weight: bold; color: #333; }
+            .value { color: #666; }
+            .true { color: green; }
+            .false { color: red; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+            tr:nth-child(even) { background-color: #f2f2f2; }
+        </style>
+    </head>
+    <body>
+        <h1>Debug Information</h1>
+        
+        <div class="section">
+            <h2>Basic Request Info</h2>
+            <p><span class="key">Path:</span> <span class="value">{path}</span></p>
+            <p><span class="key">Method:</span> <span class="value">{method}</span></p>
+            <p><span class="key">Is Secure:</span> <span class="{is_secure_class}">{is_secure}</span></p>
+            <p><span class="key">User:</span> <span class="value">{user}</span></p>
+            <p><span class="key">Debug Mode:</span> <span class="{debug_mode_class}">{debug_mode}</span></p>
+        </div>
+        
+        <div class="section">
+            <h2>CSRF Information</h2>
+            <p><span class="key">CSRF Cookie:</span> <span class="value">{csrf_cookie}</span></p>
+            <h3>CSRF Trusted Origins</h3>
+            <ul>
+                {csrf_trusted_origins_list}
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>Allowed Hosts</h2>
+            <ul>
+                {allowed_hosts_list}
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>Headers</h2>
+            <table>
+                <tr>
+                    <th>Header</th>
+                    <th>Value</th>
+                </tr>
+                {headers_table}
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>Cookies</h2>
+            <table>
+                <tr>
+                    <th>Cookie</th>
+                    <th>Value</th>
+                </tr>
+                {cookies_table}
+            </table>
+        </div>
+    </body>
+    </html>
+    """.format(
+        path=debug_info['path'],
+        method=debug_info['method'],
+        is_secure=debug_info['is_secure'],
+        is_secure_class='true' if debug_info['is_secure'] else 'false',
+        user=debug_info['user'],
+        debug_mode=debug_info['debug_mode'],
+        debug_mode_class='true' if debug_info['debug_mode'] else 'false',
+        csrf_cookie=debug_info['csrf_cookie'],
+        csrf_trusted_origins_list=''.join(f'<li>{origin}</li>' for origin in debug_info['csrf_trusted_origins']),
+        allowed_hosts_list=''.join(f'<li>{host}</li>' for host in debug_info['allowed_hosts']),
+        headers_table=''.join(f'<tr><td>{k}</td><td>{v}</td></tr>' for k, v in debug_info['headers'].items()),
+        cookies_table=''.join(f'<tr><td>{k}</td><td>{v}</td></tr>' for k, v in debug_info['COOKIES'].items())
+    )
+    
+    return HttpResponse(html)
 
 urlpatterns = [
-    path('', welcome, name='home'),
+    path('', index_view, name='home'),
+    path('welcome/', welcome, name='welcome'),
     
     path('admin/', admin.site.urls),
     
@@ -312,6 +473,7 @@ urlpatterns = [
     }, status=200), name='railway-health'),  # Simple dedicated Railway health check
     path('db-health/', db_health_check, name='db-health'),  # Database-specific health check
     path('debug-request/', debug_request, name='debug-request'),  # Debug view
+    path('debug/', html_debug_view, name='debug'),  # Simple HTML debug view
 ]
 
 # Custom 404 handler
