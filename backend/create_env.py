@@ -36,7 +36,7 @@ PGDATA={pgdata_path}
 # Other settings
 DEBUG=False
 SECRET_KEY={secret_key}
-ALLOWED_HOSTS=localhost,127.0.0.1,web-production-f03ff.up.railway.app
+ALLOWED_HOSTS=localhost,127.0.0.1,backend-production-0150.up.railway.app
 USE_SQLITE=False
 """.strip()
 

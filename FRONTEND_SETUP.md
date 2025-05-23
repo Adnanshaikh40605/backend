@@ -85,14 +85,14 @@ Add Tailwind to your CSS in `src/index.css`:
 Create a `.env` file in the root of your project:
 
 ```
-VITE_API_URL=https://web-production-f03ff.up.railway.app
-VITE_MEDIA_URL=https://web-production-f03ff.up.railway.app/media/
+VITE_API_BASE_URL=https://backend-production-0150.up.railway.app
+VITE_MEDIA_URL=https://backend-production-0150.up.railway.app/media/
 ```
 
 For local development, you can create a `.env.development` file:
 
 ```
-VITE_API_URL=http://localhost:8000
+VITE_API_BASE_URL=http://localhost:8000
 VITE_MEDIA_URL=http://localhost:8000/media/
 ```
 

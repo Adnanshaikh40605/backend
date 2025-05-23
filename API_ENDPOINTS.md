@@ -1,6 +1,6 @@
 # Blog CMS API Endpoints Documentation
 
-Base URL: `https://backend-production-e49d6.up.railway.app`
+Base URL: `https://backend-production-0150.up.railway.app`
 
 ## Authentication
 
@@ -11,8 +11,8 @@ The API currently does not require authentication for GET requests. For POST, PU
 The API supports Cross-Origin Resource Sharing (CORS) with the following configurations:
 - Allowed origins: 
   - `http://localhost:3000` (local development)
-  - `https://backend-production-e49d6.up.railway.app` (backend)
-  - `https://frontend-pi-sable-69.vercel.app` (frontend deployment)
+  - `https://backend-production-0150.up.railway.app` (backend)
+  - `https://dohblog.vercel.app` (frontend deployment)
 - Credentials are allowed (important for CSRF)
 - All standard HTTP methods are supported (GET, POST, PUT, PATCH, DELETE, OPTIONS)
 
@@ -33,7 +33,7 @@ Retrieves a list of all blog posts with pagination.
     ```json
     {
       "count": 10,
-      "next": "https://backend-production-e49d6.up.railway.app/api/posts/?page=2",
+      "next": "https://backend-production-0150.up.railway.app/api/posts/?page=2",
       "previous": null,
       "results": [
         {

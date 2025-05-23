@@ -7,23 +7,23 @@ This guide explains how to connect your frontend application to the Django API b
 Your Django API is now deployed at:
 
 ```
-https://backend-production-e49d6.up.railway.app
+https://backend-production-0150.up.railway.app
 ```
 
 ## API Endpoints
 
 All API endpoints are prefixed with `/api/`, for example:
 
-- Blog Posts: `https://backend-production-e49d6.up.railway.app/api/posts/`
-- Comments: `https://backend-production-e49d6.up.railway.app/api/comments/`
-- Images: `https://backend-production-e49d6.up.railway.app/api/images/`
+- Blog Posts: `https://backend-production-0150.up.railway.app/api/posts/`
+- Comments: `https://backend-production-0150.up.railway.app/api/comments/`
+- Images: `https://backend-production-0150.up.railway.app/api/images/`
 
 ## Media Files
 
 Media files (uploads, images) are available at:
 
 ```
-https://backend-production-e49d6.up.railway.app/media/
+https://backend-production-0150.up.railway.app/media/
 ```
 
 ## React/Vite Frontend Setup
@@ -31,8 +31,8 @@ https://backend-production-e49d6.up.railway.app/media/
 ### 1. Create a `.env` file in your React project root:
 
 ```
-VITE_API_URL=https://backend-production-e49d6.up.railway.app
-VITE_MEDIA_URL=https://backend-production-e49d6.up.railway.app/media/
+VITE_API_BASE_URL=https://backend-production-0150.up.railway.app
+VITE_MEDIA_URL=https://backend-production-0150.up.railway.app/media/
 ```
 
 ### 2. Use these environment variables in your API service:
@@ -40,12 +40,12 @@ VITE_MEDIA_URL=https://backend-production-e49d6.up.railway.app/media/
 ```javascript
 // src/api/apiService.js
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || 'http://localhost:8000/media/';
 
 // For API requests
 const fetchPosts = async () => {
-  const response = await fetch(`${API_URL}/api/posts/`);
+  const response = await fetch(`${API_BASE_URL}/api/posts/`);
   return response.json();
 };
 
@@ -54,7 +54,7 @@ const getImageUrl = (imagePath) => {
   return `${MEDIA_URL}${imagePath}`;
 };
 
-export { API_URL, MEDIA_URL, fetchPosts, getImageUrl };
+export { API_BASE_URL, MEDIA_URL, fetchPosts, getImageUrl };
 ```
 
 ### 3. Set up CORS (already configured on backend)
@@ -70,7 +70,7 @@ The backend has been configured to accept requests from your frontend. If you're
 const createPost = async (postData) => {
   const csrfToken = getCookie('csrftoken'); // You'll need to implement getCookie
   
-  const response = await fetch(`${API_URL}/api/posts/`, {
+  const response = await fetch(`${API_BASE_URL}/api/posts/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -109,5 +109,5 @@ After deploying your frontend, make sure to:
 To verify the API connection is working:
 
 1. Open your browser console
-2. Try a simple fetch request to `https://backend-production-e49d6.up.railway.app/api/posts/`
+2. Try a simple fetch request to `https://backend-production-0150.up.railway.app/api/posts/`
 3. Check that the response contains your blog post data 

@@ -6,7 +6,7 @@ This document explains how to access and use the interactive API documentation f
 
 The following URL provides access to the API documentation:
 
-- **Swagger UI**: [https://backend-production-e49d6.up.railway.app/api/docs/](https://backend-production-e49d6.up.railway.app/api/docs/)
+- **Swagger UI**: [https://backend-production-0150.up.railway.app/api/docs/](https://backend-production-0150.up.railway.app/api/docs/)
   - Interactive documentation with a user-friendly interface
   - Allows testing API endpoints directly from the browser
 
@@ -30,7 +30,7 @@ The API is organized into the following sections:
 
 ### Using Swagger UI
 
-1. Navigate to the Swagger UI URL: [https://backend-production-e49d6.up.railway.app/api/docs/](https://backend-production-e49d6.up.railway.app/api/docs/)
+1. Navigate to the Swagger UI URL: [https://backend-production-0150.up.railway.app/api/docs/](https://backend-production-0150.up.railway.app/api/docs/)
 
 2. Explore available endpoints organized by tags (Posts, Comments, Images)
 
@@ -90,5 +90,5 @@ For endpoints that require authentication:
 
 For any questions or support regarding the API:
 - Email: skadnan40605@gmail.com
-- Backend URL: https://backend-production-e49d6.up.railway.app/
-- Frontend URL: https://frontend-pi-sable-69.vercel.app/ 
+- Backend URL: https://backend-production-0150.up.railway.app/
+- Frontend URL: https://dohblog.vercel.app/ 

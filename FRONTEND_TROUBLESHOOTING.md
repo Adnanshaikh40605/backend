@@ -4,7 +4,7 @@ If you're experiencing issues connecting your frontend to the Railway-deployed D
 
 ## Bad Request (400) Error When Accessing Railway URL Directly
 
-If you see a "Bad Request (400)" error when visiting `https://web-production-f03ff.up.railway.app/` directly in your browser, this issue has been fixed in the backend. Try refreshing the page.
+If you see a "Bad Request (400)" error when visiting `https://backend-production-0150.up.railway.app/` directly in your browser, this issue has been fixed in the backend. Try refreshing the page.
 
 The fix included:
 1. Adding error handling to the welcome view
@@ -39,18 +39,18 @@ FRONTEND_URL=https://your-frontend-domain.vercel.app
 - Double-check your API URL in the frontend environment variables:
 
 ```
-VITE_API_URL=https://web-production-f03ff.up.railway.app
-VITE_MEDIA_URL=https://web-production-f03ff.up.railway.app/media/
+VITE_API_BASE_URL=https://backend-production-0150.up.railway.app
+VITE_MEDIA_URL=https://backend-production-0150.up.railway.app/media/
 ```
 
 - Ensure you're appending `/api/` to your base URL in API requests:
 
 ```javascript
 // Correct
-fetch(`${API_URL}/api/posts/`)
+fetch(`${API_BASE_URL}/api/posts/`)
 
 // Incorrect
-fetch(`${API_URL}/posts/`) 
+fetch(`${API_BASE_URL}/posts/`) 
 ```
 
 ### 3. CSRF Token Issues for POST/PUT/DELETE Requests
@@ -64,7 +64,7 @@ fetch(`${API_URL}/posts/`)
 - When making requests that change data, include CSRF token and credentials:
 
 ```javascript
-const response = await fetch(`${API_URL}/api/posts/`, {
+const response = await fetch(`${API_BASE_URL}/api/posts/`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ const imageUrl = `${MEDIA_URL}${imagePath}`;
 
 - For CKEditor uploaded images, they should be accessed at:
 ```
-https://web-production-f03ff.up.railway.app/media/uploads/image.jpg
+https://backend-production-0150.up.railway.app/media/uploads/image.jpg
 ```
 
 ## Testing API Connectivity
@@ -100,7 +100,7 @@ You can test API connectivity using these simple steps:
 2. Run this command to test the API connection:
 
 ```javascript
-fetch('https://web-production-f03ff.up.railway.app/api/posts/')
+fetch('https://backend-production-0150.up.railway.app/api/posts/')
   .then(response => response.json())
   .then(data => console.log(data))
   .catch(error => console.error('Error:', error));
@@ -110,7 +110,7 @@ fetch('https://web-production-f03ff.up.railway.app/api/posts/')
 
 If you suspect issues with the Railway deployment:
 
-1. Check Railway logs for error messages
+1. Check Railway logs for any errors
 2. Temporarily toggle `DEBUG=True` in Railway environment variables
 3. Add your frontend domain to the `ALLOWED_HOSTS` setting
 

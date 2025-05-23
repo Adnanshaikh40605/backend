@@ -2,7 +2,7 @@
 // Copy this into your browser console to test Railway API connectivity
 
 // Base API URL
-const API_URL = 'https://web-production-f03ff.up.railway.app';
+const API_BASE_URL = 'https://backend-production-0150.up.railway.app';
 
 // Helper function to get a CSRF token from cookies
 function getCookie(name) {
@@ -19,7 +19,7 @@ async function testAPI() {
   try {
     // Test 1: Root URL
     console.log('Test 1: Checking root URL');
-    const rootResponse = await fetch(`${API_URL}/`, {
+    const rootResponse = await fetch(`${API_BASE_URL}/`, {
       method: 'GET',
     });
     
@@ -31,7 +31,7 @@ async function testAPI() {
     
     // Test 2: API posts endpoint
     console.log('\nTest 2: Checking API posts endpoint');
-    const postsResponse = await fetch(`${API_URL}/api/posts/`, {
+    const postsResponse = await fetch(`${API_BASE_URL}/api/posts/`, {
       method: 'GET',
     });
     
@@ -45,7 +45,7 @@ async function testAPI() {
     
     // Test 3: Media access
     console.log('\nTest 3: Checking media access');
-    const mediaResponse = await fetch(`${API_URL}/media/test-access`, {
+    const mediaResponse = await fetch(`${API_BASE_URL}/media/test-access`, {
       method: 'GET',
     });
     
@@ -57,7 +57,7 @@ async function testAPI() {
     
     // Test 4: CORS with credentials
     console.log('\nTest 4: Testing CORS with credentials');
-    const corsResponse = await fetch(`${API_URL}/api/posts/`, {
+    const corsResponse = await fetch(`${API_BASE_URL}/api/posts/`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -80,7 +80,7 @@ async function testAPI() {
       // Try a simple POST request with the token
       console.log('Testing POST request with CSRF token...');
       try {
-        const testPostResponse = await fetch(`${API_URL}/api/posts/`, {
+        const testPostResponse = await fetch(`${API_BASE_URL}/api/posts/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ async function testAPI() {
     } else {
       console.log('⚠️ No CSRF token found in cookies');
       console.log('To get a CSRF token:');
-      console.log('1. Visit the Django admin at ' + API_URL + '/admin/');
+      console.log('1. Visit the Django admin at ' + API_BASE_URL + '/admin/');
       console.log('2. Log in with your admin credentials');
       console.log('3. Run this test again');
     }

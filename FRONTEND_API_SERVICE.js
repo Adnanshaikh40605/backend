@@ -1,7 +1,7 @@
 // src/api/apiService.js
 
 // Get environment variables with fallback to development values
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || 'http://localhost:8000/media/';
 
 // Helper function to get cookies (for CSRF token)
@@ -31,19 +31,19 @@ const getHeaders = (includeContentType = true) => {
 const postAPI = {
   // Get all posts
   getAll: async () => {
-    const response = await fetch(`${API_URL}/api/posts/`);
+    const response = await fetch(`${API_BASE_URL}/api/posts/`);
     return response.json();
   },
   
   // Get single post by ID
   getById: async (id) => {
-    const response = await fetch(`${API_URL}/api/posts/${id}/`);
+    const response = await fetch(`${API_BASE_URL}/api/posts/${id}/`);
     return response.json();
   },
   
   // Create new post
   create: async (postData) => {
-    const response = await fetch(`${API_URL}/api/posts/`, {
+    const response = await fetch(`${API_BASE_URL}/api/posts/`, {
       method: 'POST',
       headers: getHeaders(),
       credentials: 'include',
@@ -54,7 +54,7 @@ const postAPI = {
   
   // Update existing post
   update: async (id, postData) => {
-    const response = await fetch(`${API_URL}/api/posts/${id}/`, {
+    const response = await fetch(`${API_BASE_URL}/api/posts/${id}/`, {
       method: 'PATCH',
       headers: getHeaders(),
       credentials: 'include',
@@ -65,7 +65,7 @@ const postAPI = {
   
   // Delete post
   delete: async (id) => {
-    const response = await fetch(`${API_URL}/api/posts/${id}/`, {
+    const response = await fetch(`${API_BASE_URL}/api/posts/${id}/`, {
       method: 'DELETE',
       headers: getHeaders(),
       credentials: 'include'
@@ -78,7 +78,7 @@ const postAPI = {
     const formData = new FormData();
     formData.append('image', imageFile);
     
-    const response = await fetch(`${API_URL}/api/posts/${id}/upload_images/`, {
+    const response = await fetch(`${API_BASE_URL}/api/posts/${id}/upload_images/`, {
       method: 'POST',
       headers: getHeaders(false), // Don't include Content-Type for file uploads
       credentials: 'include',
@@ -92,7 +92,7 @@ const postAPI = {
 const commentAPI = {
   // Get all comments (with optional post ID filter)
   getAll: async (postId = null) => {
-    let url = `${API_URL}/api/comments/`;
+    let url = `${API_BASE_URL}/api/comments/`;
     if (postId) {
       url += `?post=${postId}`;
     }
@@ -102,7 +102,7 @@ const commentAPI = {
   
   // Create new comment
   create: async (commentData) => {
-    const response = await fetch(`${API_URL}/api/comments/`, {
+    const response = await fetch(`${API_BASE_URL}/api/comments/`, {
       method: 'POST',
       headers: getHeaders(),
       credentials: 'include',
@@ -113,7 +113,7 @@ const commentAPI = {
   
   // Approve a comment
   approve: async (id) => {
-    const response = await fetch(`${API_URL}/api/comments/${id}/approve/`, {
+    const response = await fetch(`${API_BASE_URL}/api/comments/${id}/approve/`, {
       method: 'POST',
       headers: getHeaders(),
       credentials: 'include'
@@ -123,7 +123,7 @@ const commentAPI = {
   
   // Get pending comment count
   getPendingCount: async () => {
-    const response = await fetch(`${API_URL}/api/comments/pending-count/`);
+    const response = await fetch(`${API_BASE_URL}/api/comments/pending-count/`);
     return response.json();
   }
 };
@@ -137,7 +137,7 @@ const mediaAPI = {
 };
 
 export {
-  API_URL,
+  API_BASE_URL,
   MEDIA_URL,
   postAPI,
   commentAPI,

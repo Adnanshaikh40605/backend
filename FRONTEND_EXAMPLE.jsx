@@ -1,6 +1,6 @@
 // Example BlogPosts.jsx component
 import React, { useState, useEffect } from 'react';
-import { API_URL, MEDIA_URL } from '../api/apiService';
+import { API_BASE_URL, MEDIA_URL } from './api/apiService';
 
 const BlogPosts = () => {
   const [posts, setPosts] = useState([]);
@@ -16,7 +16,7 @@ const BlogPosts = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(`${API_URL}/api/posts/`);
+      const response = await fetch(`${API_BASE_URL}/api/posts/`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);

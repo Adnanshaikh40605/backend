@@ -248,8 +248,8 @@ def welcome(request):
             
             <div class="footer">
                 <p>Contact: <a href="mailto:skadnan40605@gmail.com">skadnan40605@gmail.com</a></p>
-                <p>Backend URL: <a href="https://backend-production-e49d6.up.railway.app/">https://backend-production-e49d6.up.railway.app/</a></p>
-                <p>Frontend URL: <a href="https://frontend-pi-sable-69.vercel.app/">https://frontend-pi-sable-69.vercel.app/</a></p>
+                <p>Backend URL: <a href="https://backend-production-0150.up.railway.app/">https://backend-production-0150.up.railway.app/</a></p>
+                <p>Frontend URL: <a href="https://dohblog.vercel.app/">https://dohblog.vercel.app/</a></p>
             </div>
         </body>
     </html>
