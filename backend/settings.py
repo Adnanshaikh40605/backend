@@ -16,6 +16,7 @@ import re
 from dotenv import load_dotenv
 import secrets
 import dj_database_url
+import socket
 
 # Load environment variables
 load_dotenv()
@@ -171,32 +172,30 @@ def mask_password(url):
     except Exception:
         return "Invalid database URL format"
 
-# First try to use the DATABASE_URL environment variable with dj_database_url
-if DATABASE_URL:
+# Check if we're running on Railway's internal network
+def is_on_railway():
     try:
-        # Parse the DATABASE_URL with dj_database_url
-        DATABASES = {'default': dj_database_url.parse(DATABASE_URL, conn_max_age=60)}
-        print(f"Using DATABASE_URL from environment: {mask_password(DATABASE_URL)}")
-    except Exception as e:
-        print(f"Error parsing DATABASE_URL: {str(e)}")
-        # Fall back to direct configuration
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': 'railway',
-                'USER': 'postgres',
-                'PASSWORD': 'DGQzwoKpJuWRfgLKzDGeuUDcfRnRkAzW',
-                'HOST': 'switchyard.proxy.rlwy.net',
-                'PORT': '47148',
-                'CONN_MAX_AGE': 60,
-                'OPTIONS': {
-                    'connect_timeout': 5,
-                },
-            }
-        }
-        print("Falling back to direct database configuration.")
+        # Try to resolve the Railway internal hostname
+        socket.gethostbyname('postgres.railway.internal')
+        return True
+    except socket.gaierror:
+        return False
+
+# If we're on Railway, use the internal connection string for better performance
+if is_on_railway():
+    print("Detected Railway environment, using internal database connection")
+    connection_url = INTERNAL_DB_URL
 else:
-    # If no DATABASE_URL, use direct configuration
+    # Otherwise use the external URL
+    connection_url = DATABASE_URL
+
+# Parse the connection URL with dj_database_url
+try:
+    DATABASES = {'default': dj_database_url.parse(connection_url, conn_max_age=60)}
+    print(f"Using database connection: {mask_password(connection_url)}")
+except Exception as e:
+    print(f"Error parsing database URL: {str(e)}")
+    # Fall back to direct configuration
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -211,7 +210,7 @@ else:
             },
         }
     }
-    print("Using direct database configuration (no DATABASE_URL found).")
+    print("Falling back to direct database configuration.")
 
 # Print database configuration for debugging
 print(f"Database engine: {DATABASES['default'].get('ENGINE', 'Not specified')}")

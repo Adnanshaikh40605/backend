@@ -1,1 +1,1 @@
-web: gunicorn backend.wsgi --log-file - --log-level debug --timeout 120 --workers 2 
+web: gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --log-file - --log-level debug --timeout 120 --workers 2 
