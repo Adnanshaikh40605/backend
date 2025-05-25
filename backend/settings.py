@@ -68,14 +68,10 @@ MIDDLEWARE = [
 ]
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5174",
-    "http://localhost:5173",
-    "http://localhost:3000",  # React dev
-]
+CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5174,http://localhost:5173,http://localhost:3000').split(',')
 
 # For development or when you're experiencing CSRF issues, you can temporarily use:
-CORS_ALLOW_ALL_ORIGINS = True  # Enable all CORS for debugging
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'
 
 # Enable credentials in CORS requests (important for CSRF)
 CORS_ALLOW_CREDENTIALS = True
@@ -129,18 +125,14 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Use PostgreSQL in production (Railway) and SQLite in development
-if 'DATABASE_URL' in os.environ:
-    DATABASES = {
-        'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+# Use dj_database_url to configure the database from the DATABASE_URL environment variable
+DATABASES = {
+    'default': dj_database_url.config(
+        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+        conn_max_age=600,
+        ssl_require=False if DEBUG else True
+    )
+}
 
 
 # Password validation
@@ -279,12 +271,8 @@ REST_FRAMEWORK = {
 }
 
 # CSRF settings for local development
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:5173',
-    'http://localhost:5174',
-]
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 
+    'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://localhost:5174').split(',')
 
 # Jazzmin Admin Theme Settings
 JAZZMIN_SETTINGS = {
