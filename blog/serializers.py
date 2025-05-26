@@ -29,9 +29,9 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'post', 'post_title', 'author_name', 'author_email', 'author_website',
             'content', 'approved', 'is_trash', 'created_at', 'updated_at', 'admin_reply',
-            'ip_address', 'user_agent', 'is_admin'
+            'parent'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'ip_address', 'user_agent']
+        read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_post_title(self, obj):
         if obj.post:

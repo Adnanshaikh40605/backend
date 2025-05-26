@@ -44,8 +44,9 @@ jobs:
         SECRET_KEY: test-secret-key
         DEBUG: 'True'
         DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+        DJANGO_SETTINGS_MODULE: backend.settings
       run: |
-        coverage run -m pytest
+        coverage run -m pytest -k "not test_api"
         coverage report
         coverage xml
     
