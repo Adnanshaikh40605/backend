@@ -7,58 +7,51 @@ from django.core.files.base import ContentFile
 import logging
 from django.utils.text import slugify
 from django.utils.crypto import get_random_string
+from django.urls import reverse
+from django.utils import timezone
+import uuid
 
 logger = logging.getLogger(__name__)
 
+def get_image_upload_path(instance, filename):
+    """Generate a unique path for each uploaded image"""
+    _, ext = os.path.splitext(filename)
+    unique_id = uuid.uuid4().hex[:8]
+    return f'blog_images/{timezone.now().strftime("%Y/%m/%d")}/{unique_id}{ext}'
+
 class BlogPost(models.Model):
-    title = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=250, unique=True, blank=True)
+    """Blog post model with optimized database fields"""
+    title = models.CharField(max_length=200, db_index=True)
+    slug = models.SlugField(max_length=250, unique=True, db_index=True)
     content = CKEditor5Field('Content', config_name='extends')
-    featured_image = models.ImageField(upload_to='featured_images/', blank=True, null=True)
+    featured_image = models.ImageField(upload_to=get_image_upload_path, null=True, blank=True)
     published = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    class Meta:
+        verbose_name = 'Blog Post'
+        verbose_name_plural = 'Blog Posts'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['published', '-created_at']),
+        ]
+    
     def __str__(self):
         return self.title
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def create_unique_slug(self):
-        """
-        Generate a unique slug for the blog post.
-        If the generated slug already exists, append a random string.
-        """
-        if self.slug:
-            # If slug is manually specified and not empty, use it
-            original_slug = self.slug
-        else:
-            # Generate slug from title
-            original_slug = slugify(self.title)
-        
-        # Check if the slug already exists
-        queryset = BlogPost.objects.filter(slug=original_slug)
-        
-        # If this is an existing object being updated, exclude it from the query
-        if self.pk:
-            queryset = queryset.exclude(pk=self.pk)
-        
-        # If the slug exists, make it unique by appending a random string
-        if queryset.exists():
-            # Generate a random string of 4 characters
-            random_string = get_random_string(4)
-            # Create a new slug with the random string
-            unique_slug = f"{original_slug}-{random_string}"
-            return unique_slug
-        
-        return original_slug
-
+    
     def save(self, *args, **kwargs):
-        # Generate slug if it's not set
+        """Auto-generate slug if not provided"""
         if not self.slug:
-            self.slug = self.create_unique_slug()
-        
+            self.slug = slugify(self.title)
+            # Ensure unique slug
+            original_slug = self.slug
+            counter = 1
+            while BlogPost.objects.filter(slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+                
         # Optimize featured image if present
         if self.featured_image:
             try:
@@ -99,85 +92,67 @@ class BlogPost(models.Model):
         
         super().save(*args, **kwargs)
 
-class BlogImage(models.Model):
-    post = models.ForeignKey(BlogPost, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to='blog_images/')
-    created_at = models.DateTimeField(auto_now_add=True)
+    def get_absolute_url(self):
+        """Get URL for the blog post"""
+        return reverse('blog:post_detail', args=[self.slug])
 
+class BlogImage(models.Model):
+    """Blog image model"""
+    post = models.ForeignKey(BlogPost, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to=get_image_upload_path)
+    caption = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Blog Image'
+        verbose_name_plural = 'Blog Images'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['post']),
+        ]
+    
     def __str__(self):
         return f"Image for {self.post.title}"
 
-    def save(self, *args, **kwargs):
-        """Optimize image on save"""
-        if self.image:
-            self.optimize_image()
-        super().save(*args, **kwargs)
-    
-    def optimize_image(self, quality=85, convert_to_webp=True):
-        """Compress image and optionally convert to WebP format"""
-        try:
-            # Open image using PIL
-            img = Image.open(self.image)
-            
-            # If convert to WebP is requested and format is supported
-            if convert_to_webp and img.mode in ('RGB', 'RGBA'):
-                # Prepare BytesIO object to save the image
-                img_io = BytesIO()
-                
-                # Save as WebP format with specified quality
-                img.save(img_io, format='WEBP', quality=quality, optimize=True)
-                
-                # Get original filename and change extension
-                filename = os.path.splitext(os.path.basename(self.image.name))[0]
-                new_filename = f"{filename}.webp"
-                
-                # Save the optimized image back to the model field
-                self.image.save(
-                    new_filename,
-                    ContentFile(img_io.getvalue()),
-                    save=False  # Don't trigger recursive save
-                )
-                logger.info(f"Converted image to WebP: {new_filename}")
-            else:
-                # If WebP not requested or not supported, just compress in original format
-                img_io = BytesIO()
-                img_format = img.format if img.format else 'JPEG'
-                
-                # Save with quality settings
-                img.save(img_io, format=img_format, quality=quality, optimize=True)
-                
-                # Save the optimized image back to the model field
-                self.image.save(
-                    self.image.name,
-                    ContentFile(img_io.getvalue()),
-                    save=False  # Don't trigger recursive save
-                )
-                logger.info(f"Compressed image: {self.image.name}")
-                
-        except Exception as e:
-            logger.error(f"Error optimizing image: {str(e)}")
-
 class Comment(models.Model):
-    post = models.ForeignKey(BlogPost, on_delete=models.CASCADE, related_name='comments', db_index=True)
-    author_name = models.CharField(max_length=100, blank=True, null=True)
-    author_email = models.EmailField(blank=True, null=True)
+    """Comment model with optimized database fields"""
+    post = models.ForeignKey(BlogPost, related_name='comments', on_delete=models.CASCADE, db_index=True)
+    parent = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
+    author_name = models.CharField(max_length=100)
+    author_email = models.EmailField()
     author_website = models.URLField(blank=True, null=True)
     content = models.TextField()
-    ip_address = models.GenericIPAddressField(blank=True, null=True)
-    user_agent = models.TextField(blank=True, null=True)
     approved = models.BooleanField(default=False, db_index=True)
     is_trash = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-    admin_reply = models.TextField(null=True, blank=True)
-    is_admin = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"Comment by {self.author_name} on {self.post.title}"
-
+    
+    # Admin reply fields
+    admin_reply = models.TextField(blank=True, null=True)
+    admin_reply_at = models.DateTimeField(blank=True, null=True)
+    
     class Meta:
+        verbose_name = 'Comment'
+        verbose_name_plural = 'Comments'
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['post', 'approved']),
-            models.Index(fields=['is_trash']),
-        ] 
+            models.Index(fields=['post', 'is_trash']),
+            models.Index(fields=['-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"Comment by {self.author_name} on {self.post.title}"
+        
+    def save(self, *args, **kwargs):
+        """Update admin_reply_at if admin_reply is set"""
+        if self.admin_reply and not self.admin_reply_at:
+            self.admin_reply_at = timezone.now()
+        super().save(*args, **kwargs)
+
+# Add the following function for related models to make migrations easier
+def generate_migrations():
+    """Helper function to create migrations for the models"""
+    from django.core.management import call_command
+    call_command('makemigrations', 'blog')
+    call_command('migrate', 'blog') 
