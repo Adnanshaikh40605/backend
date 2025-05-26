@@ -9,6 +9,7 @@ router_v1 = DefaultRouter()
 router_v1.register(r'posts', views.BlogPostViewSet)
 router_v1.register(r'images', views.BlogImageViewSet)
 router_v1.register(r'comments', views.CommentViewSet)
+router_v1.register(r'categories', views.CategoryViewSet)
 
 # These explicit paths override the default router paths for special actions
 urlpatterns = [
@@ -38,6 +39,10 @@ urlpatterns = [
     
     # Also provide underscore versions for better API compatibility
     path('v1/comments/pending_count/', views.CommentViewSet.as_view({'get': 'pending_count'}), name='comment-pending-count-alt'),
+    
+    # Category endpoints
+    path('v1/categories/all/', views.get_all_categories, name='categories-all'),
+    path('v1/categories/by-slug/<slug:slug>/', views.get_category_by_slug, name='category-by-slug'),
     
     # Legacy routes for backward compatibility
     path('comments/pending-count/', views.CommentViewSet.as_view({'get': 'pending_count'})),

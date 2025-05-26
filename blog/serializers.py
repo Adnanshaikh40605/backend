@@ -1,5 +1,13 @@
 from rest_framework import serializers
-from .models import BlogPost, BlogImage, Comment
+from .models import BlogPost, BlogImage, Comment, Category
+
+class CategorySerializer(serializers.ModelSerializer):
+    post_count = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug', 'description', 'featured_image', 'post_count', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 class BlogImageSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(
@@ -57,6 +65,8 @@ class BlogPostListSerializer(serializers.ModelSerializer):
 class BlogPostSerializer(serializers.ModelSerializer):
     images = BlogImageSerializer(many=True, read_only=True)
     comments = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField()
+    category_slug = serializers.SerializerMethodField()
     featured_image = serializers.ImageField(
         max_length=None, 
         use_url=True, 
@@ -84,11 +94,22 @@ class BlogPostSerializer(serializers.ModelSerializer):
             comments = obj.comments.filter(approved=True)
             return CommentSerializer(comments, many=True).data
     
+    def get_category_name(self, obj):
+        if obj.category:
+            return obj.category.name
+        return None
+    
+    def get_category_slug(self, obj):
+        if obj.category:
+            return obj.category.slug
+        return None
+    
     class Meta:
         model = BlogPost
-        fields = ['id', 'title', 'slug', 'content', 'featured_image', 'images', 'comments', 
+        fields = ['id', 'title', 'slug', 'content', 'excerpt', 'category', 'category_name', 'category_slug',
+                 'featured', 'featured_image', 'images', 'comments', 
                  'additional_images', 'published', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'category_name', 'category_slug']
     
     def create(self, validated_data):
         # Extract additional images if present

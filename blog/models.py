@@ -19,11 +19,55 @@ def get_image_upload_path(instance, filename):
     unique_id = uuid.uuid4().hex[:8]
     return f'blog_images/{timezone.now().strftime("%Y/%m/%d")}/{unique_id}{ext}'
 
+class Category(models.Model):
+    """Category model for blog posts"""
+    name = models.CharField(max_length=100, db_index=True)
+    slug = models.SlugField(max_length=120, unique=True, db_index=True)
+    description = models.TextField(blank=True, null=True)
+    featured_image = models.ImageField(upload_to='category_images/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Category'
+        verbose_name_plural = 'Categories'
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['slug']),
+        ]
+    
+    def __str__(self):
+        return self.name
+    
+    def save(self, *args, **kwargs):
+        """Auto-generate slug if not provided"""
+        if not self.slug:
+            self.slug = slugify(self.name)
+            # Ensure unique slug
+            original_slug = self.slug
+            counter = 1
+            while Category.objects.filter(slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
+    
+    def get_absolute_url(self):
+        """Get URL for category page"""
+        return reverse('blog:category_detail', args=[self.slug])
+    
+    @property
+    def post_count(self):
+        """Return the number of published posts in this category"""
+        return self.blogpost_set.filter(published=True).count()
+
 class BlogPost(models.Model):
     """Blog post model with optimized database fields"""
     title = models.CharField(max_length=200, db_index=True)
     slug = models.SlugField(max_length=250, unique=True, db_index=True)
     content = CKEditor5Field('Content', config_name='extends')
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
+    excerpt = models.TextField(blank=True, null=True, help_text="Short description for SEO and previews")
+    featured = models.BooleanField(default=False, help_text="Mark as a featured post")
     featured_image = models.ImageField(upload_to=get_image_upload_path, null=True, blank=True)
     published = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
@@ -118,8 +162,8 @@ class Comment(models.Model):
     """Comment model with optimized database fields"""
     post = models.ForeignKey(BlogPost, related_name='comments', on_delete=models.CASCADE, db_index=True)
     parent = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
-    author_name = models.CharField(max_length=100)
-    author_email = models.EmailField()
+    author_name = models.CharField(max_length=100, blank=True, null=True, default="Anonymous")
+    author_email = models.EmailField(blank=True, null=True)
     author_website = models.URLField(blank=True, null=True)
     content = models.TextField()
     approved = models.BooleanField(default=False, db_index=True)

@@ -1,19 +1,167 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 import logging
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from ..models import BlogPost, Comment
+from ..models import BlogPost, Comment, Category
 from ..serializers import BlogPostSerializer, BlogPostListSerializer
 
 # Setup logger
 logger = logging.getLogger(__name__)
 
+# Function-based views
+@api_view(['GET'])
+def post_detail(request, slug=None, pk=None):
+    """Get blog post details by slug or pk"""
+    try:
+        # Determine how to fetch the post
+        if slug:
+            post = get_object_or_404(BlogPost, slug=slug, published=True)
+        elif pk:
+            post = get_object_or_404(BlogPost, pk=pk, published=True)
+        else:
+            return Response(
+                {'error': 'Either slug or ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Optimize with prefetches
+        post = BlogPost.objects.prefetch_related(
+            'images',
+            Prefetch(
+                'comments', 
+                queryset=Comment.objects.filter(approved=True),
+                to_attr='approved_comments'
+            )
+        ).get(pk=post.pk)
+        
+        # Serialize and return
+        serializer = BlogPostSerializer(post)
+        return Response(serializer.data)
+    except Exception as e:
+        logger.error(f"Error fetching post detail: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def category_posts(request, category_slug):
+    """Get posts by category slug"""
+    try:
+        # Verify category exists
+        category = get_object_or_404(Category, slug=category_slug)
+        
+        # Get published posts in this category
+        posts = BlogPost.objects.filter(
+            category=category, 
+            published=True
+        ).prefetch_related('images').order_by('-created_at')
+        
+        # Paginate if needed
+        # pagination could be added here
+        
+        # Serialize and return
+        serializer = BlogPostListSerializer(posts, many=True)
+        return Response({
+            'category': {
+                'id': category.id,
+                'name': category.name,
+                'slug': category.slug
+            },
+            'posts': serializer.data
+        })
+    except Exception as e:
+        logger.error(f"Error fetching category posts: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def search_posts(request):
+    """Search posts by query term"""
+    query = request.query_params.get('q', '')
+    
+    if not query:
+        return Response({'error': 'Search query is required'}, 
+                       status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Search in title, content, and excerpt
+        posts = BlogPost.objects.filter(
+            Q(title__icontains=query) | 
+            Q(content__icontains=query) | 
+            Q(excerpt__icontains=query),
+            published=True
+        ).prefetch_related('images').order_by('-created_at')
+        
+        # Serialize and return
+        serializer = BlogPostListSerializer(posts, many=True)
+        return Response({
+            'query': query,
+            'result_count': posts.count(),
+            'results': serializer.data
+        })
+    except Exception as e:
+        logger.error(f"Error searching posts: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def get_latest_posts(request):
+    """Get the latest published blog posts"""
+    count = int(request.query_params.get('count', 5))
+    
+    try:
+        posts = BlogPost.objects.filter(
+            published=True
+        ).prefetch_related('images').order_by('-created_at')[:count]
+        
+        serializer = BlogPostListSerializer(posts, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        logger.error(f"Error fetching latest posts: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def get_post_by_slug(request, slug):
+    """Get a specific post by its slug"""
+    try:
+        post = get_object_or_404(
+            BlogPost.objects.prefetch_related(
+                'images',
+                Prefetch(
+                    'comments',
+                    queryset=Comment.objects.filter(approved=True),
+                    to_attr='approved_comments'
+                )
+            ),
+            slug=slug, 
+            published=True
+        )
+        
+        serializer = BlogPostSerializer(post)
+        return Response(serializer.data)
+    except Exception as e:
+        logger.error(f"Error fetching post by slug: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def featured_posts(request):
+    """Get featured blog posts"""
+    count = int(request.query_params.get('count', 3))
+    
+    try:
+        posts = BlogPost.objects.filter(
+            featured=True,
+            published=True
+        ).prefetch_related('images').order_by('-created_at')[:count]
+        
+        serializer = BlogPostListSerializer(posts, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        logger.error(f"Error fetching featured posts: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
 @swagger_auto_schema(
     tags=['Posts'],
     operation_id='list_posts',

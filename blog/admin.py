@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import BlogPost, BlogImage, Comment
+from .models import BlogPost, BlogImage, Comment, Category
 from django.utils.html import format_html
 
 class BlogImageInline(admin.TabularInline):
@@ -53,24 +53,24 @@ class BlogPostAdmin(admin.ModelAdmin):
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
     list_display = ('author_info', 'content_preview', 'post_link', 'parent_comment', 'status_column', 'created_at')
-    list_filter = ('approved', 'is_trash', 'is_admin', 'created_at')
+    list_filter = ('approved', 'is_trash', 'created_at')
     search_fields = ('content', 'author_name', 'author_email', 'post__title')
     actions = ['approve_comments', 'unapprove_comments', 'trash_comments', 'restore_comments', 'delete_permanently']
     date_hierarchy = 'created_at'
-    readonly_fields = ['ip_address', 'user_agent', 'created_at', 'updated_at']
+    readonly_fields = ['created_at', 'updated_at']
     
     class Media:
         js = ('js/admin/comment_actions.js',)
         
     fieldsets = (
         ('Author Information', {
-            'fields': ('author_name', 'author_email', 'author_website', 'ip_address', 'user_agent'),
+            'fields': ('author_name', 'author_email', 'author_website'),
         }),
         ('Comment Content', {
             'fields': ('content', 'admin_reply'),
         }),
         ('Status', {
-            'fields': ('approved', 'is_trash', 'is_admin'),
+            'fields': ('approved', 'is_trash'),
         }),
         ('Related Post & Parent', {
             'fields': ('post', 'parent'),
@@ -92,12 +92,7 @@ class CommentAdmin(admin.ModelAdmin):
         else:
             email = ""
             
-        if obj.ip_address:
-            ip = f"<br>{obj.ip_address}"
-        else:
-            ip = ""
-            
-        return format_html("{}{}{}", author, email, ip)
+        return format_html("{}{}", author, email)
     author_info.short_description = 'Author'
     author_info.admin_order_field = 'author_name'
     
@@ -227,3 +222,23 @@ class BlogImageAdmin(admin.ModelAdmin):
             return format_html('<img src="{}" width="100" height="auto" />', obj.image.url)
         return "No Image"
     image_preview.short_description = 'Image Preview'
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'post_count', 'created_at')
+    search_fields = ('name', 'slug', 'description')
+    prepopulated_fields = {'slug': ('name',)}
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Category Information', {
+            'fields': ('name', 'slug', 'description'),
+        }),
+        ('Media', {
+            'fields': ('featured_image',),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )

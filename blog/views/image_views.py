@@ -1,15 +1,60 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.decorators import api_view, parser_classes
 import logging
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from ..models import BlogImage
+from ..models import BlogImage, BlogPost
 from ..serializers import BlogImageSerializer
 
 # Setup logger
 logger = logging.getLogger(__name__)
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def upload_image(request):
+    """Upload an image and optionally associate with a post"""
+    try:
+        # Check if image file exists in request
+        if 'image' not in request.FILES:
+            return Response(
+                {'error': 'No image file provided'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get post ID if provided
+        post_id = request.data.get('post')
+        post = None
+        
+        if post_id:
+            try:
+                post = BlogPost.objects.get(pk=post_id)
+            except BlogPost.DoesNotExist:
+                return Response(
+                    {'error': f'Post with ID {post_id} does not exist'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        # Create and save the image
+        image_file = request.FILES['image']
+        blog_image = BlogImage(image=image_file)
+        
+        if post:
+            blog_image.post = post
+            
+        blog_image.save()
+        
+        # Serialize and return
+        serializer = BlogImageSerializer(blog_image)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        logger.error(f"Error in upload_image: {str(e)}")
+        return Response(
+            {'error': f'Failed to upload image: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 @swagger_auto_schema(
     tags=['Images'],
