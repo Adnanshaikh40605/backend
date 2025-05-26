@@ -1,5 +1,0 @@
-[build]
-builder = "NIXPACKS"  # Railway uses Nixpacks for Python projects
-
-[deploy]
-start = "gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT"
