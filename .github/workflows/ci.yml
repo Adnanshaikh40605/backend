@@ -69,6 +69,14 @@ jobs:
         cache: 'npm'
         cache-dependency-path: './frontend/package-lock.json'
     
+    - name: Check and create node_modules
+      working-directory: ./frontend
+      run: |
+        if [ ! -d "node_modules" ]; then
+          mkdir -p node_modules
+          mkdir -p node_modules/.cache
+        fi
+    
     - name: Install dependencies
       working-directory: ./frontend
       run: npm ci
@@ -84,6 +92,10 @@ jobs:
     - name: Build frontend
       working-directory: ./frontend
       run: npm run build
+      
+    - name: Clean up cache directories
+      working-directory: ./frontend
+      run: npm run clean
 
   docker-build:
     runs-on: ubuntu-latest

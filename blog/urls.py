@@ -4,6 +4,8 @@ from rest_framework.decorators import api_view
 from django.views.decorators.csrf import csrf_exempt
 from . import views
 
+app_name = 'blog'
+
 # Create two routers for different API versions
 router_v1 = DefaultRouter()
 router_v1.register(r'posts', views.BlogPostViewSet)
@@ -43,6 +45,12 @@ urlpatterns = [
     # Category endpoints
     path('v1/categories/all/', views.get_all_categories, name='categories-all'),
     path('v1/categories/by-slug/<slug:slug>/', views.get_category_by_slug, name='category-by-slug'),
+    
+    # Post endpoints
+    path('v1/posts/by-slug/<slug:slug>/', views.get_post_by_slug, name='get_post_by_slug'),
+    path('v1/posts/featured/', views.featured_posts, name='featured_posts'),
+    path('v1/posts/latest/', views.get_latest_posts, name='get_latest_posts'),
+    path('v1/posts/search/', views.search_posts, name='search_posts'),
     
     # Legacy routes for backward compatibility
     path('comments/pending-count/', views.CommentViewSet.as_view({'get': 'pending_count'})),
