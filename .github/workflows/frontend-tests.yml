@@ -21,24 +21,42 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
+    # Create package-lock.json if it doesn't exist to avoid caching errors
+    - name: Create package-lock.json if needed
+      run: |
+        if [ ! -f "frontend/package-lock.json" ]; then
+          echo '{}' > frontend/package-lock.json
+        fi
+    
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: './frontend/package-lock.json'
+        cache-dependency-path: 'frontend/package-lock.json'
     
-    - name: Check and create node_modules
-      working-directory: ./frontend
+    # Setup npm cache directory explicitly
+    - name: Setup npm cache
       run: |
-        if [ ! -d "node_modules" ]; then
-          mkdir -p node_modules
-          mkdir -p node_modules/.cache
-        fi
+        npm config set cache .npm
+    
+    # Add explicit cache for node_modules
+    - name: Cache node_modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          frontend/node_modules
+          frontend/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
     
     - name: Install dependencies
       working-directory: ./frontend
-      run: npm ci
+      run: |
+        # Ensure node_modules directory exists
+        mkdir -p node_modules
+        npm ci || npm install
     
     - name: Run linting
       working-directory: ./frontend
