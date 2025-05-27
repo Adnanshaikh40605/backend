@@ -79,6 +79,9 @@ def comment_counts_direct(request):
         logger.error(f"Error getting comment counts: {str(e)}", exc_info=True)
         return JsonResponse({'error': str(e), 'detail': 'An error occurred while fetching comment counts'}, status=500)
 
+# Adding this alias for the counts endpoint to make it available at /api/comments/counts/ as well
+comment_counts = comment_counts_direct
+
 @api_view(['POST'])
 @csrf_exempt
 def approve_comment(request):

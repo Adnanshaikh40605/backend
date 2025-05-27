@@ -31,33 +31,39 @@ urlpatterns = [
     path('list-urls/', views.list_urls, name='list-urls'),
     
     # Special comment endpoints (keep consistent naming with frontend)
-    path('v1/comments/pending-count/', views.CommentViewSet.as_view({'get': 'pending_count'}), name='comment-pending-count'),
-    path('v1/comments/all/', views.CommentViewSet.as_view({'get': 'all'}), name='comments-all'),
-    path('v1/comments/debug/', views.CommentViewSet.as_view({'get': 'debug'}), name='comments-debug'),
-    path('v1/comments/check-approved/', views.CommentViewSet.as_view({'get': 'check_approved'}), name='comments-check-approved'),
+    path('comments/pending-count/', views.CommentViewSet.as_view({'get': 'pending_count'}), name='comment-pending-count'),
+    path('comments/all/', views.CommentViewSet.as_view({'get': 'all'}), name='comments-all'),
+    path('comments/debug/', views.CommentViewSet.as_view({'get': 'debug'}), name='comments-debug'),
+    path('comments/check-approved/', views.CommentViewSet.as_view({'get': 'check_approved'}), name='comments-check-approved'),
+    
+    # Also add v1 prefixed versions for consistency
+    path('v1/comments/pending-count/', views.CommentViewSet.as_view({'get': 'pending_count'}), name='v1-comment-pending-count'),
+    path('v1/comments/all/', views.CommentViewSet.as_view({'get': 'all'}), name='v1-comments-all'),
+    path('v1/comments/debug/', views.CommentViewSet.as_view({'get': 'debug'}), name='v1-comments-debug'),
+    path('v1/comments/check-approved/', views.CommentViewSet.as_view({'get': 'check_approved'}), name='v1-comments-check-approved'),
     
     # Comment endpoints
-    path('v1/comments/approved-for-post/', views.approved_comments_for_post, name='comments-approved-for-post'),
-    re_path(r'^v1/comments/approved-for-post/$', views.approved_comments_for_post, name='comments-approved-for-post-regex'),
+    path('comments/approved-for-post/', views.approved_comments_for_post, name='comments-approved-for-post'),
+    path('v1/comments/approved-for-post/', views.approved_comments_for_post, name='v1-comments-approved-for-post'),
     
     # Also provide underscore versions for better API compatibility
-    path('v1/comments/pending_count/', views.CommentViewSet.as_view({'get': 'pending_count'}), name='comment-pending-count-alt'),
+    path('comments/pending_count/', views.CommentViewSet.as_view({'get': 'pending_count'}), name='comment-pending-count-alt'),
     
     # Category endpoints
-    path('v1/categories/all/', views.get_all_categories, name='categories-all'),
-    path('v1/categories/by-slug/<slug:slug>/', views.get_category_by_slug, name='category-by-slug'),
+    path('categories/all/', views.get_all_categories, name='categories-all'),
+    path('v1/categories/all/', views.get_all_categories, name='v1-categories-all'),
+    path('categories/by-slug/<slug:slug>/', views.get_category_by_slug, name='category-by-slug'),
+    path('v1/categories/by-slug/<slug:slug>/', views.get_category_by_slug, name='v1-category-by-slug'),
     
     # Post endpoints
-    path('v1/posts/by-slug/<slug:slug>/', views.get_post_by_slug, name='get_post_by_slug'),
-    path('v1/posts/featured/', views.featured_posts, name='featured_posts'),
-    path('v1/posts/latest/', views.get_latest_posts, name='get_latest_posts'),
-    path('v1/posts/search/', views.search_posts, name='search_posts'),
-    
-    # Legacy routes for backward compatibility
-    path('comments/pending-count/', views.CommentViewSet.as_view({'get': 'pending_count'})),
-    path('comments/all/', views.CommentViewSet.as_view({'get': 'all'})),
-    path('comments/check-approved/', views.CommentViewSet.as_view({'get': 'check_approved'})),
-    path('comments/approved-for-post/', views.approved_comments_for_post),
+    path('posts/by-slug/<slug:slug>/', views.get_post_by_slug, name='get_post_by_slug'),
+    path('v1/posts/by-slug/<slug:slug>/', views.get_post_by_slug, name='v1_get_post_by_slug'),
+    path('posts/featured/', views.featured_posts, name='featured_posts'),
+    path('v1/posts/featured/', views.featured_posts, name='v1_featured_posts'),
+    path('posts/latest/', views.get_latest_posts, name='get_latest_posts'),
+    path('v1/posts/latest/', views.get_latest_posts, name='v1_get_latest_posts'),
+    path('posts/search/', views.search_posts, name='search_posts'),
+    path('v1/posts/search/', views.search_posts, name='v1_search_posts'),
     
     # Public test endpoint
     path('public-test/', views.public_test, name='public-test-endpoint'),

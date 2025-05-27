@@ -20,12 +20,12 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import HttpResponse
 from django.views.static import serve
-from blog.comment_api import comment_counts_direct, approved_comments_for_post, approve_comment, unapprove_comment
+from blog.comment_api import comment_counts_direct, approved_comments_for_post, approve_comment, unapprove_comment, comment_counts
 
 # Define your API paths
 api_urlpatterns = [
     path('api/', include('blog.urls')),
-    path('api/comments/counts/', comment_counts_direct, name='direct-comment-counts'),
+    path('api/comments/counts/', comment_counts, name='comment-counts'),
     path('api/comments/approved-for-post/', approved_comments_for_post, name='direct-approved-comments'),
     path('api/comments/approve/', approve_comment, name='direct-approve-comment'),
     path('api/comments/unapprove/', unapprove_comment, name='direct-unapprove-comment'),
@@ -93,13 +93,13 @@ def welcome(request):
             <div class="container">
                 <h2>Links</h2>
                 <a href="/admin/" class="btn">Admin Panel</a>
-                <a href="https://blog-cms-frontend-ten.vercel.app/" class="btn">Frontend Website</a>
+                <a href="https://dohblog.vercel.app/" class="btn">Frontend Website</a>
             </div>
             
             <div class="footer">
                 <p>Contact: <a href="mailto:skadnan40605@gmail.com">skadnan40605@gmail.com</a></p>
-                <p>Backend URL: <a href="https://web-production-f03ff.up.railway.app/">https://web-production-f03ff.up.railway.app/</a></p>
-                <p>Frontend URL: <a href="https://blog-cms-frontend-ten.vercel.app/">https://blog-cms-frontend-ten.vercel.app/</a></p>
+                <p>Backend URL: <a href="https://web-production-2f30.up.railway.app/">https://web-production-2f30.up.railway.app/</a></p>
+                <p>Frontend URL: <a href="https://dohblog.vercel.app/">https://dohblog.vercel.app/</a></p>
             </div>
         </body>
     </html>
