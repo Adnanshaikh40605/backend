@@ -1240,65 +1240,61 @@ def test_api(request):
 
 @api_view(['GET'])
 def debug_swagger(request):
-    """Debug endpoint that generates a simple API documentation without using drf-yasg"""
+    """Debug endpoint to find issues with Swagger generation."""
+    from drf_yasg.generators import OpenAPISchemaGenerator
+    from drf_yasg.codecs import OpenAPICodecJson
+    from django.urls import get_resolver
+
+    # Get the resolver
+    resolver = get_resolver()
     
-    # Function to get all viewset methods
-    def get_viewset_methods(viewset_class):
-        methods = {}
-        for method_name in dir(viewset_class):
-            if not method_name.startswith('_'):
-                method = getattr(viewset_class, method_name)
-                if callable(method) and hasattr(method, '__doc__') and method.__doc__:
-                    methods[method_name] = method.__doc__.strip()
-        return methods
+    # Create a schema generator
+    generator = OpenAPISchemaGenerator(
+        info=openapi.Info(
+            title="Blog CMS API Debug",
+            default_version='v1',
+            description="Debug information for API schema generation",
+        )
+    )
     
-    # Get all endpoints from viewsets
-    endpoints = []
-    
-    # Blog post endpoints
-    blog_post_methods = get_viewset_methods(BlogPostViewSet)
-    for method, doc in blog_post_methods.items():
-        endpoints.append({
-            "name": f"BlogPost.{method}",
-            "path": f"/api/posts/... ({method})",
-            "description": doc[:100] + "..." if len(doc) > 100 else doc
+    # Generate the schema
+    try:
+        schema = generator.get_schema(request, public=True)
+        json_codec = OpenAPICodecJson()
+        schema_dict = json_codec._dump_dict(schema)
+        
+        # Get a list of all viewsets and view functions
+        viewsets = {}
+        for viewset in [BlogPostViewSet, BlogImageViewSet, CommentViewSet]:
+            viewset_name = viewset.__name__
+            viewsets[viewset_name] = {
+                "actions": list(viewset.get_extra_actions(viewset)),
+                "methods": [
+                    name for name, method in viewset.__dict__.items()
+                    if callable(method) and not name.startswith('_')
+                ]
+            }
+            
+        # Count endpoints
+        paths = schema.get('paths', {})
+        
+        return JsonResponse({
+            "debug_info": "Swagger schema debug information",
+            "schema_version": schema.get('swagger', 'unknown'),
+            "info": schema.get('info', {}),
+            "path_count": len(paths),
+            "paths": list(paths.keys()) if paths else [],
+            "viewsets": viewsets,
+            "registered_patterns": [
+                str(pattern) for pattern in resolver.url_patterns
+                if 'api' in str(pattern)
+            ]
         })
-    
-    # Blog image endpoints
-    blog_image_methods = get_viewset_methods(BlogImageViewSet)
-    for method, doc in blog_image_methods.items():
-        endpoints.append({
-            "name": f"BlogImage.{method}",
-            "path": f"/api/images/... ({method})",
-            "description": doc[:100] + "..." if len(doc) > 100 else doc
-        })
-    
-    # Comment endpoints
-    comment_methods = get_viewset_methods(CommentViewSet)
-    for method, doc in comment_methods.items():
-        endpoints.append({
-            "name": f"Comment.{method}",
-            "path": f"/api/comments/... ({method})",
-            "description": doc[:100] + "..." if len(doc) > 100 else doc
-        })
-    
-    # Function-based views
-    for func_name in ['list_urls', 'comment_action', 'comment_counts', 'test_api']:
-        func = globals().get(func_name)
-        if func and hasattr(func, '__doc__') and func.__doc__:
-            endpoints.append({
-                "name": func_name,
-                "path": f"/api/{func_name.replace('_', '-')}/",
-                "description": func.__doc__.strip()[:100] + "..." if len(func.__doc__.strip()) > 100 else func.__doc__.strip()
-            })
-    
-    return JsonResponse({
-        "endpoints": endpoints,
-        "total_endpoints": len(endpoints),
-        "documentation_url": f"{request.scheme}://{request.get_host()}/api/docs/",
-        "status": "This is a simple API documentation. The Swagger UI may be experiencing issues.",
-        "help": "Try accessing the documentation directly at /api/docs/"
-    })
+    except Exception as e:
+        return JsonResponse({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status=500)
 
 @api_view(['GET'])
 def approved_comments_for_post(request):

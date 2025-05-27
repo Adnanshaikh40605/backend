@@ -24,7 +24,6 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "django_ckeditor_5",
-    "drf_yasg",
     "blog",
 ]
 
@@ -111,18 +110,6 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.FormParser",
         "rest_framework.parsers.MultiPartParser",
     ],
-}
-
-# Swagger
-SWAGGER_SETTINGS = {
-    "SECURITY_DEFINITIONS": {
-        "Bearer": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header",
-        }
-    },
-    "USE_SESSION_AUTH": False,
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

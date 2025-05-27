@@ -3,6 +3,8 @@ from rest_framework.routers import DefaultRouter
 from rest_framework.decorators import api_view
 from django.views.decorators.csrf import csrf_exempt
 from . import views
+from .views.category_views import CategoryViewSet
+from .serializers import BlogPostSerializer, BlogPostListSerializer, CommentSerializer
 
 app_name = 'blog'
 
@@ -11,7 +13,7 @@ router_v1 = DefaultRouter()
 router_v1.register(r'posts', views.BlogPostViewSet)
 router_v1.register(r'images', views.BlogImageViewSet)
 router_v1.register(r'comments', views.CommentViewSet)
-router_v1.register(r'categories', views.CategoryViewSet)
+router_v1.register(r'categories', CategoryViewSet)
 
 # These explicit paths override the default router paths for special actions
 urlpatterns = [
@@ -25,8 +27,9 @@ urlpatterns = [
     path('test/', views.test_api, name='api-test'),
     path('test-approved-comments/', views.test_approved_comments, name='test-approved-comments'),
     
-    # Debug endpoint for Swagger issues
+    # Debug endpoints
     path('debug-swagger/', views.debug_swagger, name='debug-swagger'),
+    path('list-urls/', views.list_urls, name='list-urls'),
     
     # Special comment endpoints (keep consistent naming with frontend)
     path('v1/comments/pending-count/', views.CommentViewSet.as_view({'get': 'pending_count'}), name='comment-pending-count'),
@@ -34,9 +37,8 @@ urlpatterns = [
     path('v1/comments/debug/', views.CommentViewSet.as_view({'get': 'debug'}), name='comments-debug'),
     path('v1/comments/check-approved/', views.CommentViewSet.as_view({'get': 'check_approved'}), name='comments-check-approved'),
     
-    # Fix the approved-for-post endpoint - ensure it's registered correctly
+    # Comment endpoints
     path('v1/comments/approved-for-post/', views.approved_comments_for_post, name='comments-approved-for-post'),
-    # Add a direct endpoint for testing
     re_path(r'^v1/comments/approved-for-post/$', views.approved_comments_for_post, name='comments-approved-for-post-regex'),
     
     # Also provide underscore versions for better API compatibility

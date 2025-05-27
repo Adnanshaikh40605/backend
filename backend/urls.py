@@ -18,52 +18,18 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.views.static import serve
 from blog.comment_api import comment_counts_direct, approved_comments_for_post, approve_comment, unapprove_comment
-from rest_framework import permissions
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
-import traceback
-from blog.swagger_schema import CustomSchemaGenerator
 
-# Function to handle Swagger errors
-def swagger_error_handler(request, exception=None):
-    error_message = str(exception) if exception else "An error occurred generating the API documentation"
-    tb = traceback.format_exc()
-    return JsonResponse({
-        "error": "Error generating API documentation",
-        "message": error_message,
-        "traceback": tb
-    }, status=500)
-
-# Basic Swagger configuration
-schema_view = get_schema_view(
-   openapi.Info(
-      title="Blog CMS API",
-      default_version='v1',
-      description="API documentation for the Blog CMS platform",
-      contact=openapi.Contact(email="skadnan40605@gmail.com"),
-   ),
-   public=True,
-   permission_classes=(permissions.AllowAny,),
-   generator_class=CustomSchemaGenerator,
-   patterns=[
-       path('api/', include('blog.urls')),
-   ],
-)
-
-# Wrap schema view with error handling
-def schema_view_with_error_handling(view):
-    def wrapped_view(request, *args, **kwargs):
-        try:
-            return view(request, *args, **kwargs)
-        except Exception as e:
-            return swagger_error_handler(request, e)
-    return wrapped_view
-
-# Wrap only the swagger UI view with error handling since we're removing the others
-schema_view_swagger_ui = schema_view_with_error_handling(schema_view.with_ui('swagger'))
+# Define your API paths
+api_urlpatterns = [
+    path('api/', include('blog.urls')),
+    path('api/comments/counts/', comment_counts_direct, name='direct-comment-counts'),
+    path('api/comments/approved-for-post/', approved_comments_for_post, name='direct-approved-comments'),
+    path('api/comments/approve/', approve_comment, name='direct-approve-comment'),
+    path('api/comments/unapprove/', unapprove_comment, name='direct-unapprove-comment'),
+]
 
 # Welcome page
 def welcome(request):
@@ -125,11 +91,6 @@ def welcome(request):
             </div>
             
             <div class="container">
-                <h2>API Documentation</h2>
-                <a href="/api/docs/" class="btn">Swagger UI Documentation</a>
-            </div>
-            
-            <div class="container">
                 <h2>Links</h2>
                 <a href="/admin/" class="btn">Admin Panel</a>
                 <a href="https://blog-cms-frontend-ten.vercel.app/" class="btn">Frontend Website</a>
@@ -148,26 +109,11 @@ urlpatterns = [
     path('', welcome, name='welcome'),
     path('admin/', admin.site.urls),
     
-    # Direct access to the comments counts endpoint
-    path('api/comments/counts/', comment_counts_direct, name='direct-comment-counts'),
-    
-    # Direct access to the approved comments endpoint
-    path('api/comments/approved-for-post/', approved_comments_for_post, name='direct-approved-comments'),
-    
-    # Direct access to comment approval endpoints
-    path('api/comments/approve/', approve_comment, name='direct-approve-comment'),
-    path('api/comments/unapprove/', unapprove_comment, name='direct-unapprove-comment'),
-    
-    # Include blog URLs with API prefix
-    path('api/', include('blog.urls')),
+    # Include all API URL patterns
+    *api_urlpatterns,
     
     # CKEditor URLs
     path("ckeditor5/", include('django_ckeditor_5.urls')),
-    
-    # Swagger documentation URLs
-    path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    path('api/swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
 ]
 
 # Serve media files in development

@@ -67,11 +67,10 @@ def test_api(request):
 
 @api_view(['GET'])
 def debug_swagger(request):
-    """Debug endpoint for Swagger schema issues"""
+    """Debug endpoint (kept for backward compatibility)"""
     return JsonResponse({
         'status': 'success',
-        'message': 'Swagger debug endpoint',
-        'info': 'Use this endpoint to troubleshoot Swagger documentation issues'
+        'message': 'API is working, Swagger has been removed',
     })
 
 @api_view(['GET'])
