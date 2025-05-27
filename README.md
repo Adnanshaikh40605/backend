@@ -7,7 +7,7 @@ A Django-based backend for a modern blog content management system with comprehe
 - **Rich Content Management**: Backend support for creating and editing blog posts with CKEditor 5
 - **Media Handling**: Upload and manage images with integrated image optimization
 - **Comment System**: Fully-featured commenting system with moderation
-- **API-Driven Architecture**: RESTful API with comprehensive Swagger documentation
+- **API-Driven Architecture**: RESTful API with comprehensive documentation
 - **Admin Interface**: Customized Django admin for content management
 
 ## Tech Stack
@@ -68,9 +68,7 @@ To deploy this application to Railway:
 
 ## API Documentation
 
-The API is documented using Swagger UI, which provides interactive documentation to explore and test the API endpoints.
-
-- **Swagger UI**: `/api/docs/` - Interactive API exploration interface
+The API provides the following endpoints for interacting with the blog CMS.
 
 ## API Endpoints
 

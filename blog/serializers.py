@@ -11,10 +11,8 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class BlogImageSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(
-        max_length=None,
-        use_url=True,
-        style={'base_template': 'input.file'},  # This helps Swagger recognize it as a file input
-        help_text="Image file"
+        required=True,
+        style={'base_template': 'input.file'}
     )
     
     class Meta:
@@ -50,11 +48,9 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class BlogPostListSerializer(serializers.ModelSerializer):
     featured_image = serializers.ImageField(
-        max_length=None, 
-        use_url=True, 
         required=False,
-        style={'base_template': 'input.file'},  # This helps Swagger recognize it as a file input
-        help_text="Featured image for the blog post"
+        allow_null=True,
+        style={'base_template': 'input.file'}
     )
     
     class Meta:
@@ -68,17 +64,14 @@ class BlogPostSerializer(serializers.ModelSerializer):
     category_name = serializers.SerializerMethodField()
     category_slug = serializers.SerializerMethodField()
     featured_image = serializers.ImageField(
-        max_length=None, 
-        use_url=True, 
         required=False,
-        style={'base_template': 'input.file'},  # This helps Swagger recognize it as a file input
-        help_text="Featured image for the blog post"
+        allow_null=True,
+        style={'base_template': 'input.file'}
     )
     additional_images = serializers.ListField(
         child=serializers.ImageField(
-            max_length=None, 
-            allow_empty_file=False,
-            style={'base_template': 'input.file'}  # This helps Swagger recognize it as a file input
+            required=True,
+            style={'base_template': 'input.file'}
         ),
         write_only=True,
         required=False,

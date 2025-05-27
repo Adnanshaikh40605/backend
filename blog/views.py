@@ -4,13 +4,11 @@ from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Count, Q
 import logging
 from django.http import JsonResponse
 from django.urls import get_resolver
 from django.urls.resolvers import URLPattern, URLResolver
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
 import traceback
 from django.http import HttpResponse
 from rest_framework import serializers
@@ -19,12 +17,13 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from rest_framework.permissions import IsAdminUser
 
-from .models import BlogPost, BlogImage, Comment
+from .models import BlogPost, BlogImage, Comment, Category
 from .serializers import (
     BlogPostSerializer, 
     BlogPostListSerializer, 
     BlogImageSerializer, 
-    CommentSerializer
+    CommentSerializer,
+    CategorySerializer
 )
 
 # Setup logger
@@ -41,23 +40,6 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
-@swagger_auto_schema(
-    tags=['Posts'],
-    operation_id='list_posts',
-    operation_description='Get a list of all blog posts',
-    manual_parameters=[
-        openapi.Parameter(
-            'published', 
-            openapi.IN_QUERY, 
-            description='Filter by published status (true/false)', 
-            type=openapi.TYPE_BOOLEAN,
-            required=False
-        )
-    ],
-    responses={
-        200: openapi.Response('Successful response', BlogPostListSerializer(many=True))
-    }
-)
 class BlogPostViewSet(viewsets.ModelViewSet):
     """
     API endpoint for managing blog posts.
@@ -116,36 +98,9 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             
         return queryset
 
-    @swagger_auto_schema(
-        operation_id='retrieve_post',
-        operation_description='Retrieve a specific blog post by ID',
-        responses={
-            200: openapi.Response('Successful response', BlogPostSerializer),
-            404: 'Post not found'
-        }
-    )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @swagger_auto_schema(
-        operation_id='create_post',
-        operation_description="Create a new blog post with optional image uploads",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            required=['title', 'content'],
-            properties={
-                'title': openapi.Schema(type=openapi.TYPE_STRING, description='Post title'),
-                'content': openapi.Schema(type=openapi.TYPE_STRING, description='Post content (HTML)'),
-                'featured_image': openapi.Schema(type=openapi.TYPE_FILE, description='Featured image file'),
-                'published': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Whether the post is published')
-            },
-        ),
-        responses={
-            201: openapi.Response('Post created successfully', BlogPostSerializer),
-            400: openapi.Response('Bad request')
-        },
-        consumes=['multipart/form-data', 'application/json']
-    )
     def create(self, request, *args, **kwargs):
         """Create a new blog post, handling both JSON and multipart requests"""
         logger.info(f"Creating blog post with content type: {request.content_type}")
@@ -185,32 +140,6 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
-    @swagger_auto_schema(
-        methods=['post'],
-        operation_description="Upload additional images to a blog post",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'images': openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(type=openapi.TYPE_FILE),
-                    description='List of image files to upload'
-                )
-            },
-            required=['images']
-        ),
-        responses={
-            201: openapi.Response(
-                description="Images uploaded successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(type=openapi.TYPE_OBJECT)
-                )
-            ),
-            400: "Bad request"
-        },
-        consumes=['multipart/form-data']
-    )
     @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
     def upload_images(self, request, pk=None):
         """Upload additional images to a blog post"""
@@ -230,65 +159,15 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         
         return Response(created_images, status=status.HTTP_201_CREATED)
 
-    @swagger_auto_schema(
-        operation_id='update_post',
-        operation_description="Update an existing blog post",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'title': openapi.Schema(type=openapi.TYPE_STRING, description='Post title'),
-                'content': openapi.Schema(type=openapi.TYPE_STRING, description='Post content (HTML)'),
-                'featured_image': openapi.Schema(type=openapi.TYPE_FILE, description='Featured image file'),
-                'published': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Whether the post is published')
-            },
-        ),
-        responses={
-            200: openapi.Response('Post updated successfully', BlogPostSerializer),
-            400: openapi.Response('Bad request'),
-            404: openapi.Response('Post not found')
-        }
-    )
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
         
-    @swagger_auto_schema(
-        operation_id='partial_update_post',
-        operation_description="Partially update an existing blog post",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'title': openapi.Schema(type=openapi.TYPE_STRING, description='Post title'),
-                'content': openapi.Schema(type=openapi.TYPE_STRING, description='Post content (HTML)'),
-                'featured_image': openapi.Schema(type=openapi.TYPE_FILE, description='Featured image file'),
-                'published': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Whether the post is published')
-            },
-        ),
-        responses={
-            200: openapi.Response('Post updated successfully', BlogPostSerializer),
-            400: openapi.Response('Bad request'),
-            404: openapi.Response('Post not found')
-        }
-    )
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
         
-    @swagger_auto_schema(
-        operation_id='delete_post',
-        operation_description="Delete a blog post",
-        responses={
-            204: openapi.Response('Post deleted successfully'),
-            404: openapi.Response('Post not found')
-        }
-    )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
-    @swagger_auto_schema(
-        operation_description="Get related posts for a blog post",
-        responses={
-            200: openapi.Response('Successful response', BlogPostListSerializer(many=True))
-        }
-    )
     @action(detail=True, methods=['get'])
     def related(self, request, pk=None):
         """Return related posts for a specific blog post"""
@@ -301,14 +180,6 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         serializer = BlogPostListSerializer(related_posts, many=True)
         return Response(serializer.data)
 
-@swagger_auto_schema(
-    tags=['Images'],
-    operation_id='list_images',
-    operation_description='Get a list of all blog images',
-    responses={
-        200: openapi.Response('Successful response', BlogImageSerializer(many=True))
-    }
-)
 class BlogImageViewSet(viewsets.ModelViewSet):
     """
     API endpoint for managing blog images.
@@ -317,91 +188,18 @@ class BlogImageViewSet(viewsets.ModelViewSet):
     serializer_class = BlogImageSerializer
     parser_classes = [MultiPartParser, FormParser]
     
-    @swagger_auto_schema(
-        operation_id='retrieve_image',
-        operation_description='Get a specific blog image by ID',
-        responses={
-            200: openapi.Response('Successful response', BlogImageSerializer),
-            404: openapi.Response('Image not found')
-        }
-    )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
         
-    @swagger_auto_schema(
-        operation_id='create_image',
-        operation_description='Create a new blog image',
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            required=['post', 'image'],
-            properties={
-                'post': openapi.Schema(type=openapi.TYPE_INTEGER, description='Post ID'),
-                'image': openapi.Schema(type=openapi.TYPE_FILE, description='Image file')
-            }
-        ),
-        responses={
-            201: openapi.Response('Image created successfully', BlogImageSerializer),
-            400: openapi.Response('Bad request')
-        },
-        consumes=['multipart/form-data']
-    )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
         
-    @swagger_auto_schema(
-        operation_id='update_image',
-        operation_description='Update an existing blog image',
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'post': openapi.Schema(type=openapi.TYPE_INTEGER, description='Post ID'),
-                'image': openapi.Schema(type=openapi.TYPE_FILE, description='Image file')
-            }
-        ),
-        responses={
-            200: openapi.Response('Image updated successfully', BlogImageSerializer),
-            400: openapi.Response('Bad request'),
-            404: openapi.Response('Image not found')
-        }
-    )
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
         
-    @swagger_auto_schema(
-        operation_id='delete_image',
-        operation_description='Delete a blog image',
-        responses={
-            204: openapi.Response('Image deleted successfully'),
-            404: openapi.Response('Image not found')
-        }
-    )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
-@swagger_auto_schema(
-    tags=['Comments'],
-    operation_id='list_comments',
-    operation_description='Get a list of all comments',
-    manual_parameters=[
-        openapi.Parameter(
-            'post', 
-            openapi.IN_QUERY, 
-            description='Filter by post ID', 
-            type=openapi.TYPE_INTEGER,
-            required=False
-        ),
-        openapi.Parameter(
-            'approved', 
-            openapi.IN_QUERY, 
-            description='Filter by approval status (true/false)', 
-            type=openapi.TYPE_BOOLEAN,
-            required=False
-        )
-    ],
-    responses={
-        200: openapi.Response('Successful response', CommentSerializer(many=True))
-    }
-)
 class CommentViewSet(viewsets.ModelViewSet):
     """
     API endpoint for managing blog comments.
@@ -482,108 +280,21 @@ class CommentViewSet(viewsets.ModelViewSet):
             logger.error(f"Error creating comment: {str(e)}")
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_id='retrieve_comment',
-        operation_description='Get a specific comment by ID',
-        responses={
-            200: openapi.Response('Successful response', CommentSerializer),
-            404: openapi.Response('Comment not found')
-        }
-    )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
         
-    @swagger_auto_schema(
-        operation_id='update_comment',
-        operation_description='Update an existing comment',
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'post': openapi.Schema(type=openapi.TYPE_INTEGER, description='Post ID'),
-                'content': openapi.Schema(type=openapi.TYPE_STRING, description='Comment content'),
-                'author_name': openapi.Schema(type=openapi.TYPE_STRING, description='Name of the commenter'),
-                'author_email': openapi.Schema(type=openapi.TYPE_STRING, format='email', description='Email of the commenter'),
-                'author_website': openapi.Schema(type=openapi.TYPE_STRING, format='uri', description='Website of the commenter'),
-                'approved': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Whether the comment is approved'),
-                'admin_reply': openapi.Schema(type=openapi.TYPE_STRING, description='Admin reply to the comment')
-            }
-        ),
-        responses={
-            200: openapi.Response('Comment updated successfully', CommentSerializer),
-            400: openapi.Response('Bad request'),
-            404: openapi.Response('Comment not found')
-        }
-    )
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
         
-    @swagger_auto_schema(
-        operation_id='delete_comment',
-        operation_description='Delete a comment',
-        responses={
-            204: openapi.Response('Comment deleted successfully'),
-            404: openapi.Response('Comment not found')
-        }
-    )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
-    @swagger_auto_schema(
-        operation_description="Retrieve the count of pending comments",
-        responses={
-            200: openapi.Response(
-                description="Pending comment count",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'count': openapi.Schema(type=openapi.TYPE_INTEGER, description='Number of pending comments')
-                    }
-                )
-            )
-        }
-    )
     @action(detail=False, methods=['get'])
     def pending_count(self, request):
         """Get the count of pending comments"""
         count = Comment.objects.filter(approved=False).count()
         return Response({'count': count})
         
-    @swagger_auto_schema(
-        operation_description="Debug endpoint to check comments data and filter functionality",
-        manual_parameters=[
-            openapi.Parameter(
-                name='post',
-                in_=openapi.IN_QUERY,
-                description='Post ID to filter comments',
-                type=openapi.TYPE_INTEGER,
-                required=False
-            ),
-            openapi.Parameter(
-                name='approved',
-                in_=openapi.IN_QUERY,
-                description='Approval status to filter by (true/false)',
-                type=openapi.TYPE_STRING,
-                required=False
-            )
-        ],
-        responses={
-            200: openapi.Response(
-                description="Debug information",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'counts': openapi.Schema(type=openapi.TYPE_OBJECT),
-                        'filters_applied': openapi.Schema(type=openapi.TYPE_OBJECT),
-                        'request_params': openapi.Schema(type=openapi.TYPE_OBJECT),
-                        'sample_comments': openapi.Schema(
-                            type=openapi.TYPE_ARRAY,
-                            items=openapi.Schema(type=openapi.TYPE_OBJECT)
-                        )
-                    }
-                )
-            )
-        }
-    )
     @action(detail=False, methods=['get'])
     def debug(self, request):
         """Debug endpoint to check comments data and filter functionality"""
@@ -628,23 +339,6 @@ class CommentViewSet(viewsets.ModelViewSet):
         
         return Response(debug_info, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(
-        methods=['post', 'patch'],
-        operation_description="Approve a comment",
-        responses={
-            200: openapi.Response(
-                description="Comment approved successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'status': openapi.Schema(type=openapi.TYPE_STRING, description='Status message'),
-                        'comment': openapi.Schema(type=openapi.TYPE_OBJECT, description='The approved comment data')
-                    }
-                )
-            ),
-            404: "Comment not found"
-        }
-    )
     @action(detail=True, methods=['post', 'patch'])
     def approve(self, request, pk=None):
         """Approve a comment"""
@@ -672,23 +366,6 @@ class CommentViewSet(viewsets.ModelViewSet):
             'approved_count': approved_count
         }, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(
-        methods=['post', 'patch'],
-        operation_description="Reject a comment",
-        responses={
-            200: openapi.Response(
-                description="Comment rejected successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'status': openapi.Schema(type=openapi.TYPE_STRING),
-                        'comment': openapi.Schema(type=openapi.TYPE_OBJECT)
-                    }
-                )
-            ),
-            404: "Comment not found"
-        }
-    )
     @action(detail=True, methods=['post', 'patch'])
     def reject(self, request, pk=None):
         """Reject (unapprove) a comment"""
@@ -711,36 +388,6 @@ class CommentViewSet(viewsets.ModelViewSet):
             'comment': serializer.data
         }, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(
-        operation_description="Bulk approve multiple comments",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'comment_ids': openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(type=openapi.TYPE_INTEGER),
-                    description='List of comment IDs to approve'
-                )
-            },
-            required=['comment_ids']
-        ),
-        responses={
-            200: openapi.Response(
-                description="Comments approved successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'status': openapi.Schema(type=openapi.TYPE_STRING),
-                        'approved_count': openapi.Schema(type=openapi.TYPE_INTEGER),
-                        'approved_ids': openapi.Schema(
-                            type=openapi.TYPE_ARRAY,
-                            items=openapi.Schema(type=openapi.TYPE_INTEGER)
-                        )
-                    }
-                )
-            )
-        }
-    )
     @action(detail=False, methods=['post'])
     def bulk_approve(self, request):
         """Approve multiple comments at once"""
@@ -765,31 +412,6 @@ class CommentViewSet(viewsets.ModelViewSet):
         
         return Response({'status': f'{count} comments approved'}, status=status.HTTP_200_OK)
         
-    @swagger_auto_schema(
-        operation_description="Bulk reject (unapprove) multiple comments",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'comment_ids': openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(type=openapi.TYPE_INTEGER),
-                    description='List of comment IDs to reject'
-                )
-            },
-            required=['comment_ids']
-        ),
-        responses={
-            200: openapi.Response(
-                description="Comments rejected successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'status': openapi.Schema(type=openapi.TYPE_STRING)
-                    }
-                )
-            )
-        }
-    )
     @action(detail=False, methods=['post'])
     def bulk_reject(self, request):
         """Reject (unapprove) multiple comments at once"""
@@ -814,38 +436,6 @@ class CommentViewSet(viewsets.ModelViewSet):
         
         return Response({'status': f'{count} comments rejected'}, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(
-        operation_description="Return all comments (approved and pending) for a post",
-        manual_parameters=[
-            openapi.Parameter(
-                name='post',
-                in_=openapi.IN_QUERY,
-                description='Post ID to filter comments',
-                type=openapi.TYPE_INTEGER,
-                required=True
-            )
-        ],
-        responses={
-            200: openapi.Response(
-                description="Comments fetched successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'approved': openapi.Schema(
-                            type=openapi.TYPE_ARRAY,
-                            items=openapi.Schema(type=openapi.TYPE_OBJECT)
-                        ),
-                        'pending': openapi.Schema(
-                            type=openapi.TYPE_ARRAY,
-                            items=openapi.Schema(type=openapi.TYPE_OBJECT)
-                        ),
-                        'total': openapi.Schema(type=openapi.TYPE_INTEGER)
-                    }
-                )
-            ),
-            400: "Bad request"
-        }
-    )
     @action(detail=False, methods=['get'])
     def all(self, request):
         """Return all comments (approved and pending) for a post"""
@@ -866,48 +456,6 @@ class CommentViewSet(viewsets.ModelViewSet):
             'total': approved_comments.count() + pending_comments.count()
         }, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(
-        operation_description="Check the status of approved comments for a post",
-        manual_parameters=[
-            openapi.Parameter(
-                name='post',
-                in_=openapi.IN_QUERY,
-                description='Post ID to check comments for',
-                type=openapi.TYPE_INTEGER,
-                required=True
-            )
-        ],
-        responses={
-            200: openapi.Response(
-                description="Comment status retrieved successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'post_id': openapi.Schema(type=openapi.TYPE_INTEGER),
-                        'post_title': openapi.Schema(type=openapi.TYPE_STRING),
-                        'counts': openapi.Schema(
-                            type=openapi.TYPE_OBJECT,
-                            properties={
-                                'total': openapi.Schema(type=openapi.TYPE_INTEGER),
-                                'approved': openapi.Schema(type=openapi.TYPE_INTEGER),
-                                'unapproved': openapi.Schema(type=openapi.TYPE_INTEGER)
-                            }
-                        ),
-                        'approved_samples': openapi.Schema(
-                            type=openapi.TYPE_ARRAY,
-                            items=openapi.Schema(type=openapi.TYPE_OBJECT)
-                        ),
-                        'unapproved_samples': openapi.Schema(
-                            type=openapi.TYPE_ARRAY,
-                            items=openapi.Schema(type=openapi.TYPE_OBJECT)
-                        )
-                    }
-                )
-            ),
-            400: "Bad request",
-            404: "Post not found"
-        }
-    )
     @action(detail=False, methods=['get'])
     def check_approved(self, request):
         """Check the status of approved comments for a specific post"""
@@ -954,23 +502,6 @@ class CommentViewSet(viewsets.ModelViewSet):
             'unapproved_samples': unapproved_samples_data
         }, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(
-        operation_description="Get only approved comments for a specific post",
-        manual_parameters=[
-            openapi.Parameter(
-                name='post',
-                in_=openapi.IN_QUERY,
-                description='Post ID to get approved comments for',
-                type=openapi.TYPE_INTEGER,
-                required=True
-            )
-        ],
-        responses={
-            200: CommentSerializer(many=True),
-            400: "Bad request",
-            404: "Post not found"
-        }
-    )
     @action(detail=False, methods=['get'])
     def approved_for_post(self, request):
         """Get only approved comments for a specific post (dedicated endpoint)"""
@@ -1000,41 +531,6 @@ class CommentViewSet(viewsets.ModelViewSet):
             logger.error(f"Error fetching approved comments: {str(e)}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @swagger_auto_schema(
-        methods=['post', 'patch', 'put', 'delete'],
-        operation_description="Reply to a comment or manage reply",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'content': openapi.Schema(
-                    type=openapi.TYPE_STRING,
-                    description='Reply text content'
-                ),
-                'name': openapi.Schema(
-                    type=openapi.TYPE_STRING,
-                    description='Name of the person replying'
-                ),
-                'email': openapi.Schema(
-                    type=openapi.TYPE_STRING,
-                    description='Email of the person replying'
-                )
-            },
-            required=['content']
-        ),
-        responses={
-            200: openapi.Response(
-                description="Reply operation successful",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'status': openapi.Schema(type=openapi.TYPE_STRING),
-                        'reply': openapi.Schema(type=openapi.TYPE_OBJECT)
-                    }
-                )
-            ),
-            404: "Comment not found"
-        }
-    )
     @action(detail=True, methods=['post', 'patch', 'put', 'delete'])
     def reply(self, request, pk=None):
         """Add, update or delete an admin reply to a comment"""
@@ -1170,25 +666,6 @@ def comment_action(request, action):
         logger.error(f"Error performing comment action: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
-@swagger_auto_schema(
-    method='get',
-    tags=['Comments'],
-    operation_description="Get comment counts by status",
-    responses={
-        200: openapi.Response(
-            description="Comment counts",
-            schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'total': openapi.Schema(type=openapi.TYPE_INTEGER),
-                    'approved': openapi.Schema(type=openapi.TYPE_INTEGER),
-                    'pending': openapi.Schema(type=openapi.TYPE_INTEGER),
-                    'trashed': openapi.Schema(type=openapi.TYPE_INTEGER)
-                }
-            )
-        )
-    }
-)
 @api_view(['GET'])
 def comment_counts(request):
     """Get counts for comments in different states (all, pending, approved, trash)"""
@@ -1240,61 +717,11 @@ def test_api(request):
 
 @api_view(['GET'])
 def debug_swagger(request):
-    """Debug endpoint to find issues with Swagger generation."""
-    from drf_yasg.generators import OpenAPISchemaGenerator
-    from drf_yasg.codecs import OpenAPICodecJson
-    from django.urls import get_resolver
-
-    # Get the resolver
-    resolver = get_resolver()
-    
-    # Create a schema generator
-    generator = OpenAPISchemaGenerator(
-        info=openapi.Info(
-            title="Blog CMS API Debug",
-            default_version='v1',
-            description="Debug information for API schema generation",
-        )
-    )
-    
-    # Generate the schema
-    try:
-        schema = generator.get_schema(request, public=True)
-        json_codec = OpenAPICodecJson()
-        schema_dict = json_codec._dump_dict(schema)
-        
-        # Get a list of all viewsets and view functions
-        viewsets = {}
-        for viewset in [BlogPostViewSet, BlogImageViewSet, CommentViewSet]:
-            viewset_name = viewset.__name__
-            viewsets[viewset_name] = {
-                "actions": list(viewset.get_extra_actions(viewset)),
-                "methods": [
-                    name for name, method in viewset.__dict__.items()
-                    if callable(method) and not name.startswith('_')
-                ]
-            }
-            
-        # Count endpoints
-        paths = schema.get('paths', {})
-        
-        return JsonResponse({
-            "debug_info": "Swagger schema debug information",
-            "schema_version": schema.get('swagger', 'unknown'),
-            "info": schema.get('info', {}),
-            "path_count": len(paths),
-            "paths": list(paths.keys()) if paths else [],
-            "viewsets": viewsets,
-            "registered_patterns": [
-                str(pattern) for pattern in resolver.url_patterns
-                if 'api' in str(pattern)
-            ]
-        })
-    except Exception as e:
-        return JsonResponse({
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }, status=500)
+    """Debug endpoint (kept for backward compatibility)"""
+    return JsonResponse({
+        'status': 'success',
+        'message': 'API is working, Swagger has been removed',
+    })
 
 @api_view(['GET'])
 def approved_comments_for_post(request):
@@ -1354,3 +781,117 @@ def public_test(request):
         'method': request.method,
         'comment_permissions': 'Public users can view approved comments and create new ones. Admin users can manage all comments.'
     })
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing categories.
+    """
+    queryset = Category.objects.all().annotate(post_count=Count('blogpost'))
+    serializer_class = CategorySerializer
+    
+    @action(detail=True, methods=['get'])
+    def posts(self, request, pk=None):
+        """Get posts in a specific category"""
+        category = self.get_object()
+        posts = BlogPost.objects.filter(category=category, published=True)
+        serializer = BlogPostListSerializer(posts, many=True)
+        return Response(serializer.data)
+
+@api_view(['GET'])
+def get_all_categories(request):
+    """Get all categories with post counts"""
+    categories = Category.objects.all().annotate(post_count=Count('blogpost'))
+    serializer = CategorySerializer(categories, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def get_category_by_slug(request, slug):
+    """Get a category by its slug"""
+    category = get_object_or_404(Category.objects.annotate(post_count=Count('blogpost')), slug=slug)
+    serializer = CategorySerializer(category)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def search_posts(request):
+    """Search posts by query term"""
+    query = request.query_params.get('q', '')
+    
+    if not query:
+        return Response({'error': 'Search query is required'}, 
+                       status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Search in title, content, and excerpt
+        posts = BlogPost.objects.filter(
+            Q(title__icontains=query) | 
+            Q(content__icontains=query) | 
+            Q(excerpt__icontains=query),
+            published=True
+        ).prefetch_related('images').order_by('-created_at')
+        
+        # Serialize and return
+        serializer = BlogPostListSerializer(posts, many=True)
+        return Response({
+            'query': query,
+            'result_count': posts.count(),
+            'results': serializer.data
+        })
+    except Exception as e:
+        logger.error(f"Error searching posts: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def get_latest_posts(request):
+    """Get the latest published blog posts"""
+    count = int(request.query_params.get('count', 5))
+    
+    try:
+        posts = BlogPost.objects.filter(
+            published=True
+        ).prefetch_related('images').order_by('-created_at')[:count]
+        
+        serializer = BlogPostListSerializer(posts, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        logger.error(f"Error fetching latest posts: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def get_post_by_slug(request, slug):
+    """Get a specific post by its slug"""
+    try:
+        post = get_object_or_404(
+            BlogPost.objects.prefetch_related(
+                'images',
+                Prefetch(
+                    'comments',
+                    queryset=Comment.objects.filter(approved=True),
+                    to_attr='approved_comments'
+                )
+            ),
+            slug=slug, 
+            published=True
+        )
+        
+        serializer = BlogPostSerializer(post)
+        return Response(serializer.data)
+    except Exception as e:
+        logger.error(f"Error fetching post by slug: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def featured_posts(request):
+    """Get featured blog posts"""
+    count = int(request.query_params.get('count', 3))
+    
+    try:
+        posts = BlogPost.objects.filter(
+            featured=True,
+            published=True
+        ).prefetch_related('images').order_by('-created_at')[:count]
+        
+        serializer = BlogPostListSerializer(posts, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        logger.error(f"Error fetching featured posts: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

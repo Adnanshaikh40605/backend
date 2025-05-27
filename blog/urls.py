@@ -3,7 +3,6 @@ from rest_framework.routers import DefaultRouter
 from rest_framework.decorators import api_view
 from django.views.decorators.csrf import csrf_exempt
 from . import views
-from .views.category_views import CategoryViewSet
 from .serializers import BlogPostSerializer, BlogPostListSerializer, CommentSerializer
 
 app_name = 'blog'
@@ -13,7 +12,7 @@ router_v1 = DefaultRouter()
 router_v1.register(r'posts', views.BlogPostViewSet)
 router_v1.register(r'images', views.BlogImageViewSet)
 router_v1.register(r'comments', views.CommentViewSet)
-router_v1.register(r'categories', CategoryViewSet)
+router_v1.register(r'categories', views.CategoryViewSet)
 
 # These explicit paths override the default router paths for special actions
 urlpatterns = [
