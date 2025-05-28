@@ -1,3 +1,8 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "python manage.py collectstatic --noinput" 
+buildCommand = "python manage.py collectstatic --noinput"
+
+[deploy]
+startCommand = "python run.py"
+healthcheckPath = "/admin/login/"
+healthcheckTimeout = 100 

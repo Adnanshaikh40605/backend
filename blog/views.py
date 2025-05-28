@@ -1019,16 +1019,6 @@ def comment_counts(request):
         logger.error(f"Error getting comment counts: {str(e)}", exc_info=True)
         return JsonResponse({'error': str(e), 'detail': 'An error occurred while fetching comment counts'}, status=500)
 
-@api_view(['GET'])
-def test_api(request):
-    """Simple test endpoint to verify API routing"""
-    return JsonResponse({
-        'status': 'success',
-        'message': 'API test endpoint successful',
-        'path': request.path,
-        'method': request.method
-    })
-
 @swagger_auto_schema(
     method='post',
     tags=['Posts'],
@@ -1146,7 +1136,7 @@ def debug_swagger(request):
         })
     
     # Function-based views
-    for func_name in ['list_urls', 'comment_action', 'comment_counts', 'test_api', 'validate_slug']:
+    for func_name in ['list_urls', 'comment_action', 'comment_counts', 'validate_slug']:
         func = globals().get(func_name)
         if func and hasattr(func, '__doc__') and func.__doc__:
             endpoints.append({

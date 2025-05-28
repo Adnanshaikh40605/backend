@@ -18,9 +18,6 @@ urlpatterns = [
     # Add slug validation endpoint - use direct function instead of viewset action
     path('posts/validate-slug/', views.validate_slug, name='post-validate-slug'),
     
-    # Test endpoints for API routing
-    path('test/', views.test_api, name='api-test'),
-    
     # Debug endpoint for Swagger issues
     path('debug-swagger/', views.debug_swagger, name='debug-swagger'),
     

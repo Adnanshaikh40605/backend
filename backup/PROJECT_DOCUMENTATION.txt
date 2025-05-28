@@ -51,7 +51,7 @@ backend/
 ### Comments API
 
 - `GET /api/comments/` - List comments with filtering by post ID and approval status
-- `POST /api/comments/` - Create a new comment (requires post ID and content)
+- `POST /api/comments/` - Create a new comment
 - `GET /api/comments/pending-count/` - Get count of pending comments
 - `POST /api/comments/bulk-approve/` - Approve multiple comments at once
 - `POST /api/comments/bulk-reject/` - Reject multiple comments at once
@@ -71,9 +71,9 @@ backend/
 
 4. **PostDetailPage.jsx** - Admin view for a single post with edit, delete, and publish functionality.
 
-5. **CommentForm.jsx** - Form for users to submit comments on blog posts. Only requires content and post ID.
+5. **CommentForm.jsx** - Form for users to submit comments on blog posts.
 
-6. **Comment.jsx** - Displays a single comment with content, timestamp, and approval status.
+6. **Comment.jsx** - Displays a single comment with author information and content.
 
 ### Context Providers
 
@@ -83,9 +83,16 @@ backend/
 
 ### API Services
 
-1. **blogPostService** - Handles all API calls related to blog posts with error handling and caching.
+1. **blogPostService** - Handles all API calls related to blog posts with error handling and caching:
+   - Advanced error handling with fallback UI for failed requests
+   - Request caching to prevent duplicate requests
+   - Timeout handling to prevent hanging requests
+   - Image upload handling with multipart/form-data
 
-2. **commentService** - Handles all API calls related to comments with error handling.
+2. **commentService** - Handles all API calls related to comments with error handling:
+   - Comment creation, approval, and rejection
+   - Pagination support for comment lists
+   - Bulk operations for comment moderation
 
 ## Error Handling
 
@@ -103,13 +110,17 @@ The system supports:
 
 - Featured images for posts
 - Additional image galleries for posts
-- Fallback placeholder images
+- Fallback placeholder images using base64-encoded SVGs
 - Image preview in admin interface
 - Responsive image rendering
+- Error handling for image loading failures
 
 ## Authentication
 
-The Django backend handles authentication for admin operations.
+The Django backend handles authentication for admin operations:
+- Admin users can create/edit/delete posts
+- Comment moderation requires authentication
+- Django REST Framework permissions control access
 
 ## Deployment
 
@@ -118,17 +129,24 @@ The project is structured to support deployment with:
 - Static file handling for production builds
 - API proxy configuration for development
 - Environment-specific settings
+- Separate frontend and backend deployments
 
-## Data Models
+## Common Issues & Troubleshooting
 
-### Comment Model
-The Comment model has been simplified to only require:
-- Association with a blog post
-- Comment content
-- Approval status
-- Timestamp
+1. **Comment submission errors**:
+   - Ensure the postId is correctly passed to the CommentForm component
+   - Verify the backend API endpoint is correctly configured
+   - Check for CORS issues if frontend and backend are on different domains
 
-This streamlined approach focuses on the comment content itself and eliminates unnecessary user identification fields.
+2. **Image loading issues**:
+   - The system uses fallback placeholder images for failed image loads
+   - Images are served from the Django media directory
+   - Check media permissions if images aren't displaying
+
+3. **API connection issues**:
+   - The frontend uses axios with timeout handling
+   - Check network connectivity and backend server status
+   - Verify proxy settings in development environment
 
 ---
 
