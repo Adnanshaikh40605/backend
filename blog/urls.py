@@ -1,70 +1,56 @@
 from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
-from rest_framework.decorators import api_view
-from django.views.decorators.csrf import csrf_exempt
 from . import views
-from .serializers import BlogPostSerializer, BlogPostListSerializer, CommentSerializer
 
-app_name = 'blog'
-
-# Create two routers for different API versions
-router_v1 = DefaultRouter()
-router_v1.register(r'posts', views.BlogPostViewSet)
-router_v1.register(r'images', views.BlogImageViewSet)
-router_v1.register(r'comments', views.CommentViewSet)
-router_v1.register(r'categories', views.CategoryViewSet)
+router = DefaultRouter()
+router.register(r'posts', views.BlogPostViewSet)
+router.register(r'images', views.BlogImageViewSet)
+router.register(r'comments', views.CommentViewSet)
 
 # These explicit paths override the default router paths for special actions
 urlpatterns = [
-    # API v1 - Include router-generated URLs
-    path('v1/', include(router_v1.urls)),
+    # Include router-generated URLs
+    path('', include(router.urls)),
     
-    # Legacy URL path for backward compatibility - redirects to v1
-    path('', include(router_v1.urls)),
+    # Add slug-based post endpoint
+    path('posts/by-slug/<slug:slug>/', views.BlogPostViewSet.as_view({'get': 'retrieve_by_slug'}), name='post-retrieve-by-slug'),
+    
+    # Add slug validation endpoint - use direct function instead of viewset action
+    path('posts/validate-slug/', views.validate_slug, name='post-validate-slug'),
     
     # Test endpoints for API routing
     path('test/', views.test_api, name='api-test'),
-    path('test-approved-comments/', views.test_approved_comments, name='test-approved-comments'),
     
-    # Debug endpoints
+    # Debug endpoint for Swagger issues
     path('debug-swagger/', views.debug_swagger, name='debug-swagger'),
-    path('list-urls/', views.list_urls, name='list-urls'),
     
     # Special comment endpoints (keep consistent naming with frontend)
     path('comments/pending-count/', views.CommentViewSet.as_view({'get': 'pending_count'}), name='comment-pending-count'),
     path('comments/all/', views.CommentViewSet.as_view({'get': 'all'}), name='comments-all'),
     path('comments/debug/', views.CommentViewSet.as_view({'get': 'debug'}), name='comments-debug'),
     path('comments/check-approved/', views.CommentViewSet.as_view({'get': 'check_approved'}), name='comments-check-approved'),
-    
-    # Also add v1 prefixed versions for consistency
-    path('v1/comments/pending-count/', views.CommentViewSet.as_view({'get': 'pending_count'}), name='v1-comment-pending-count'),
-    path('v1/comments/all/', views.CommentViewSet.as_view({'get': 'all'}), name='v1-comments-all'),
-    path('v1/comments/debug/', views.CommentViewSet.as_view({'get': 'debug'}), name='v1-comments-debug'),
-    path('v1/comments/check-approved/', views.CommentViewSet.as_view({'get': 'check_approved'}), name='v1-comments-check-approved'),
-    
-    # Comment endpoints
-    path('comments/approved-for-post/', views.approved_comments_for_post, name='comments-approved-for-post'),
-    path('v1/comments/approved-for-post/', views.approved_comments_for_post, name='v1-comments-approved-for-post'),
+    path('comments/approved-for-post/', views.CommentViewSet.as_view({'get': 'approved_for_post'}), name='comments-approved-for-post'),
     
     # Also provide underscore versions for better API compatibility
     path('comments/pending_count/', views.CommentViewSet.as_view({'get': 'pending_count'}), name='comment-pending-count-alt'),
     
-    # Category endpoints
-    path('categories/all/', views.get_all_categories, name='categories-all'),
-    path('v1/categories/all/', views.get_all_categories, name='v1-categories-all'),
-    path('categories/by-slug/<slug:slug>/', views.get_category_by_slug, name='category-by-slug'),
-    path('v1/categories/by-slug/<slug:slug>/', views.get_category_by_slug, name='v1-category-by-slug'),
+    # Bulk operations
+    path('comments/bulk_approve/', views.CommentViewSet.as_view({'post': 'bulk_approve'}), name='comments-bulk-approve'),
+    path('comments/bulk_reject/', views.CommentViewSet.as_view({'post': 'bulk_reject'}), name='comments-bulk-reject'),
     
-    # Post endpoints
-    path('posts/by-slug/<slug:slug>/', views.get_post_by_slug, name='get_post_by_slug'),
-    path('v1/posts/by-slug/<slug:slug>/', views.get_post_by_slug, name='v1_get_post_by_slug'),
-    path('posts/featured/', views.featured_posts, name='featured_posts'),
-    path('v1/posts/featured/', views.featured_posts, name='v1_featured_posts'),
-    path('posts/latest/', views.get_latest_posts, name='get_latest_posts'),
-    path('v1/posts/latest/', views.get_latest_posts, name='v1_get_latest_posts'),
-    path('posts/search/', views.search_posts, name='search_posts'),
-    path('v1/posts/search/', views.search_posts, name='v1_search_posts'),
+    # Comment admin action endpoints
+    path('comments/approve/', views.comment_action, {'action': 'approve'}, name='comment-approve'),
+    path('comments/unapprove/', views.comment_action, {'action': 'unapprove'}, name='comment-unapprove'),
+    path('comments/trash/', views.comment_action, {'action': 'trash'}, name='comment-trash'),
+    path('comments/restore/', views.comment_action, {'action': 'restore'}, name='comment-restore'),
+    path('comments/delete/', views.comment_action, {'action': 'delete'}, name='comment-delete'),
     
-    # Public test endpoint
-    path('public-test/', views.public_test, name='public-test-endpoint'),
+    # Debug URL for troubleshooting
+    path('debug/urls/', views.list_urls, name='debug-list-urls'),
+    
+    # Comment counts endpoint - direct path
+    path('comments/counts/', views.comment_counts, name='comment-counts'),
+    
+    # Add a direct pattern matcher to ensure the full path works
+    re_path(r'^comments/counts/?$', views.comment_counts, name='comment-counts-regex'),
 ] 

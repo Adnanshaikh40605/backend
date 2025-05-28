@@ -1,18 +1,12 @@
 from rest_framework import serializers
-from .models import BlogPost, BlogImage, Comment, Category
-
-class CategorySerializer(serializers.ModelSerializer):
-    post_count = serializers.ReadOnlyField()
-    
-    class Meta:
-        model = Category
-        fields = ['id', 'name', 'slug', 'description', 'featured_image', 'post_count', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+from .models import BlogPost, BlogImage, Comment
 
 class BlogImageSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(
-        required=True,
-        style={'base_template': 'input.file'}
+        max_length=None,
+        use_url=True,
+        style={'base_template': 'input.file'},  # This helps Swagger recognize it as a file input
+        help_text="Image file"
     )
     
     class Meta:
@@ -27,10 +21,10 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'post', 'post_title', 'author_name', 'author_email', 'author_website',
             'content', 'approved', 'is_trash', 'created_at', 'updated_at', 'admin_reply',
-            'parent'
+            'ip_address', 'user_agent'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-    
+        read_only_fields = ['id', 'created_at', 'updated_at', 'ip_address', 'user_agent']
+        
     def get_post_title(self, obj):
         if obj.post:
             return obj.post.title
@@ -42,15 +36,18 @@ class CommentSerializer(serializers.ModelSerializer):
         if instance.post:
             representation['post'] = {
                 'id': instance.post.id,
-                'title': instance.post.title
+                'title': instance.post.title,
+                'slug': instance.post.slug if hasattr(instance.post, 'slug') else None
             }
         return representation
 
 class BlogPostListSerializer(serializers.ModelSerializer):
     featured_image = serializers.ImageField(
+        max_length=None, 
+        use_url=True, 
         required=False,
-        allow_null=True,
-        style={'base_template': 'input.file'}
+        style={'base_template': 'input.file'},  # This helps Swagger recognize it as a file input
+        help_text="Featured image for the blog post"
     )
     
     class Meta:
@@ -61,17 +58,18 @@ class BlogPostListSerializer(serializers.ModelSerializer):
 class BlogPostSerializer(serializers.ModelSerializer):
     images = BlogImageSerializer(many=True, read_only=True)
     comments = serializers.SerializerMethodField()
-    category_name = serializers.SerializerMethodField()
-    category_slug = serializers.SerializerMethodField()
     featured_image = serializers.ImageField(
+        max_length=None, 
+        use_url=True, 
         required=False,
-        allow_null=True,
-        style={'base_template': 'input.file'}
+        style={'base_template': 'input.file'},  # This helps Swagger recognize it as a file input
+        help_text="Featured image for the blog post"
     )
     additional_images = serializers.ListField(
         child=serializers.ImageField(
-            required=True,
-            style={'base_template': 'input.file'}
+            max_length=None, 
+            allow_empty_file=False,
+            style={'base_template': 'input.file'}  # This helps Swagger recognize it as a file input
         ),
         write_only=True,
         required=False,
@@ -87,22 +85,11 @@ class BlogPostSerializer(serializers.ModelSerializer):
             comments = obj.comments.filter(approved=True)
             return CommentSerializer(comments, many=True).data
     
-    def get_category_name(self, obj):
-        if obj.category:
-            return obj.category.name
-        return None
-    
-    def get_category_slug(self, obj):
-        if obj.category:
-            return obj.category.slug
-        return None
-    
     class Meta:
         model = BlogPost
-        fields = ['id', 'title', 'slug', 'content', 'excerpt', 'category', 'category_name', 'category_slug',
-                 'featured', 'featured_image', 'images', 'comments', 
+        fields = ['id', 'title', 'slug', 'content', 'featured_image', 'images', 'comments', 
                  'additional_images', 'published', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at', 'category_name', 'category_slug']
+        read_only_fields = ['id', 'created_at', 'updated_at']
     
     def create(self, validated_data):
         # Extract additional images if present

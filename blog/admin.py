@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import BlogPost, BlogImage, Comment, Category
+from .models import BlogPost, BlogImage, Comment
 from django.utils.html import format_html
 
 class BlogImageInline(admin.TabularInline):
@@ -21,19 +21,18 @@ class CommentInline(admin.TabularInline):
 
 @admin.register(BlogPost)
 class BlogPostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'slug', 'published', 'created_at', 'updated_at')
+    list_display = ('title', 'published', 'created_at', 'updated_at')
     list_filter = ('published', 'created_at')
-    search_fields = ('title', 'slug', 'content')
+    search_fields = ('title', 'content')
     inlines = [BlogImageInline, CommentInline]
     save_on_top = True
     list_per_page = 20
     date_hierarchy = 'created_at'
     actions_on_top = True
     actions_on_bottom = True
-    prepopulated_fields = {'slug': ('title',)}
     fieldsets = (
         ('Post Information', {
-            'fields': ('title', 'slug', 'content'),
+            'fields': ('title', 'content'),
             'classes': ('wide',),
         }),
         ('Publication', {
@@ -52,19 +51,19 @@ class BlogPostAdmin(admin.ModelAdmin):
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ('author_info', 'content_preview', 'post_link', 'parent_comment', 'status_column', 'created_at')
+    list_display = ('author_info', 'content_preview', 'post_link', 'status_column', 'created_at')
     list_filter = ('approved', 'is_trash', 'created_at')
     search_fields = ('content', 'author_name', 'author_email', 'post__title')
     actions = ['approve_comments', 'unapprove_comments', 'trash_comments', 'restore_comments', 'delete_permanently']
     date_hierarchy = 'created_at'
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['ip_address', 'user_agent', 'created_at', 'updated_at']
     
     class Media:
         js = ('js/admin/comment_actions.js',)
         
     fieldsets = (
         ('Author Information', {
-            'fields': ('author_name', 'author_email', 'author_website'),
+            'fields': ('author_name', 'author_email', 'author_website', 'ip_address', 'user_agent'),
         }),
         ('Comment Content', {
             'fields': ('content', 'admin_reply'),
@@ -72,8 +71,8 @@ class CommentAdmin(admin.ModelAdmin):
         ('Status', {
             'fields': ('approved', 'is_trash'),
         }),
-        ('Related Post & Parent', {
-            'fields': ('post', 'parent'),
+        ('Related Post', {
+            'fields': ('post',),
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
@@ -92,7 +91,12 @@ class CommentAdmin(admin.ModelAdmin):
         else:
             email = ""
             
-        return format_html("{}{}", author, email)
+        if obj.ip_address:
+            ip = f"<br>{obj.ip_address}"
+        else:
+            ip = ""
+            
+        return format_html("{}{}{}", author, email, ip)
     author_info.short_description = 'Author'
     author_info.admin_order_field = 'author_name'
     
@@ -201,15 +205,6 @@ class CommentAdmin(admin.ModelAdmin):
             if 'delete_permanently' in actions:
                 del actions['delete_permanently']
         return actions
-    
-    def parent_comment(self, obj):
-        if obj.parent:
-            parent_text = obj.parent.content[:50] + '...' if len(obj.parent.content) > 50 else obj.parent.content
-            return format_html('<a href="{}">{}</a>',
-                              f'/admin/blog/comment/{obj.parent.id}/change/',
-                              f'Reply to: {parent_text}')
-        return format_html('<span style="color: #999;">Top-level comment</span>')
-    parent_comment.short_description = 'Parent'
 
 @admin.register(BlogImage)
 class BlogImageAdmin(admin.ModelAdmin):
@@ -222,23 +217,3 @@ class BlogImageAdmin(admin.ModelAdmin):
             return format_html('<img src="{}" width="100" height="auto" />', obj.image.url)
         return "No Image"
     image_preview.short_description = 'Image Preview'
-
-@admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'post_count', 'created_at')
-    search_fields = ('name', 'slug', 'description')
-    prepopulated_fields = {'slug': ('name',)}
-    readonly_fields = ('created_at', 'updated_at')
-    
-    fieldsets = (
-        ('Category Information', {
-            'fields': ('name', 'slug', 'description'),
-        }),
-        ('Media', {
-            'fields': ('featured_image',),
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',),
-        }),
-    )

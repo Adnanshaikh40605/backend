@@ -18,18 +18,47 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.static import serve
-from blog.comment_api import comment_counts_direct, approved_comments_for_post, approve_comment, unapprove_comment, comment_counts
+from blog.comment_api import comment_counts_direct
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+import traceback
 
-# Define your API paths
-api_urlpatterns = [
-    path('api/', include('blog.urls')),
-    path('api/comments/counts/', comment_counts, name='comment-counts'),
-    path('api/comments/approved-for-post/', approved_comments_for_post, name='direct-approved-comments'),
-    path('api/comments/approve/', approve_comment, name='direct-approve-comment'),
-    path('api/comments/unapprove/', unapprove_comment, name='direct-unapprove-comment'),
-]
+# Function to handle Swagger errors
+def swagger_error_handler(request, exception=None):
+    error_message = str(exception) if exception else "An error occurred generating the API documentation"
+    tb = traceback.format_exc()
+    return JsonResponse({
+        "error": "Error generating API documentation",
+        "message": error_message,
+        "traceback": tb
+    }, status=500)
+
+# Basic Swagger configuration
+schema_view = get_schema_view(
+   openapi.Info(
+      title="Blog CMS API",
+      default_version='v1',
+      description="API documentation for the Blog CMS platform",
+      contact=openapi.Contact(email="skadnan40605@gmail.com"),
+   ),
+   public=True,
+   permission_classes=(permissions.AllowAny,),
+)
+
+# Wrap schema view with error handling
+def schema_view_with_error_handling(view):
+    def wrapped_view(request, *args, **kwargs):
+        try:
+            return view(request, *args, **kwargs)
+        except Exception as e:
+            return swagger_error_handler(request, e)
+    return wrapped_view
+
+# Wrap only the swagger UI view with error handling since we're removing the others
+schema_view_swagger_ui = schema_view_with_error_handling(schema_view.with_ui('swagger'))
 
 # Welcome page
 def welcome(request):
@@ -91,15 +120,20 @@ def welcome(request):
             </div>
             
             <div class="container">
+                <h2>API Documentation</h2>
+                <a href="/api/docs/" class="btn">Swagger UI Documentation</a>
+            </div>
+            
+            <div class="container">
                 <h2>Links</h2>
                 <a href="/admin/" class="btn">Admin Panel</a>
-                <a href="https://dohblog.vercel.app/" class="btn">Frontend Website</a>
+                <a href="https://blog-cms-frontend-ten.vercel.app/" class="btn">Frontend Website</a>
             </div>
             
             <div class="footer">
                 <p>Contact: <a href="mailto:skadnan40605@gmail.com">skadnan40605@gmail.com</a></p>
-                <p>Backend URL: <a href="https://web-production-2f30.up.railway.app/">https://web-production-2f30.up.railway.app/</a></p>
-                <p>Frontend URL: <a href="https://dohblog.vercel.app/">https://dohblog.vercel.app/</a></p>
+                <p>Backend URL: <a href="https://web-production-f03ff.up.railway.app/">https://web-production-f03ff.up.railway.app/</a></p>
+                <p>Frontend URL: <a href="https://blog-cms-frontend-ten.vercel.app/">https://blog-cms-frontend-ten.vercel.app/</a></p>
             </div>
         </body>
     </html>
@@ -109,11 +143,17 @@ urlpatterns = [
     path('', welcome, name='welcome'),
     path('admin/', admin.site.urls),
     
-    # Include all API URL patterns
-    *api_urlpatterns,
+    # Direct access to the comments counts endpoint
+    path('api/comments/counts/', comment_counts_direct, name='direct-comment-counts'),
+    
+    # Include blog URLs with API prefix
+    path('api/', include('blog.urls')),
     
     # CKEditor URLs
     path("ckeditor5/", include('django_ckeditor_5.urls')),
+    
+    # Swagger documentation URL (only keeping the Swagger UI)
+    path('api/docs/', schema_view_swagger_ui, name='schema-swagger-ui'),
 ]
 
 # Serve media files in development

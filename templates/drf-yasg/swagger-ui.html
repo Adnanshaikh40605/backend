@@ -1,0 +1,97 @@
+{% extends "drf-yasg/swagger-ui.html" %}
+
+{% block extra_styles %}
+<style>
+  /* Custom CSS for swagger UI */
+  .swagger-ui .topbar {
+    background-color: #2C3E50;
+    padding: 10px 0;
+  }
+  
+  .swagger-ui .topbar .download-url-wrapper .select-label {
+    color: white;
+  }
+  
+  .swagger-ui img {
+    display: none; /* Hide the default logo */
+  }
+  
+  .swagger-ui .topbar:before {
+    content: "Blog CMS API";
+    font-size: 1.8em;
+    font-weight: bold;
+    color: white;
+    margin-left: 20px;
+  }
+  
+  .swagger-ui .info .title {
+    color: #2C3E50;
+    font-weight: bold;
+  }
+  
+  .swagger-ui .btn.execute {
+    background-color: #3498DB;
+    color: white;
+    border-color: #3498DB;
+  }
+  
+  .swagger-ui .btn.execute:hover {
+    background-color: #2980B9;
+  }
+  
+  .swagger-ui .opblock.opblock-get {
+    background: rgba(97, 175, 254, 0.1);
+    border-color: #61affe;
+  }
+  
+  .swagger-ui .opblock.opblock-post {
+    background: rgba(73, 204, 144, 0.1);
+    border-color: #49cc90;
+  }
+  
+  .swagger-ui .opblock.opblock-put {
+    background: rgba(252, 161, 48, 0.1);
+    border-color: #fca130;
+  }
+  
+  .swagger-ui .opblock.opblock-delete {
+    background: rgba(249, 62, 62, 0.1);
+    border-color: #f93e3e;
+  }
+  
+  .swagger-ui .opblock.opblock-patch {
+    background: rgba(80, 227, 194, 0.1);
+    border-color: #50e3c2;
+  }
+  
+  /* Style for tags/sections */
+  .swagger-ui .opblock-tag {
+    border-bottom: 1px solid #e8ebee;
+    padding: 10px 0;
+  }
+  
+  .swagger-ui .opblock-tag:hover {
+    background-color: #f8f9fa;
+  }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Wait for the Swagger UI to load completely
+  window.addEventListener('load', function() {
+    // Add version and contact info in a more prominent way
+    setTimeout(function() {
+      const infoContainer = document.querySelector('.information-container');
+      if (infoContainer) {
+        const contactInfo = document.createElement('div');
+        contactInfo.className = 'contact-info';
+        contactInfo.innerHTML = '<p style="margin-top: 15px;"><strong>Contact:</strong> <a href="mailto:skadnan40605@gmail.com">skadnan40605@gmail.com</a></p>';
+        contactInfo.innerHTML += '<p><strong>Backend URL:</strong> <a href="https://web-production-f03ff.up.railway.app/" target="_blank">https://web-production-f03ff.up.railway.app/</a></p>';
+        contactInfo.innerHTML += '<p><strong>Frontend URL:</strong> <a href="https://blog-cms-frontend-ten.vercel.app/" target="_blank">https://blog-cms-frontend-ten.vercel.app/</a></p>';
+        infoContainer.appendChild(contactInfo);
+      }
+    }, 500);
+  });
+</script>
+{% endblock %} 

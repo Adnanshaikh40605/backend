@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django_ckeditor_5.fields import CKEditor5Field
+from django.utils.text import slugify
 
 class FAQ(models.Model):
     question = models.CharField(max_length=500)
@@ -17,6 +18,7 @@ class FAQ(models.Model):
 
 class BlogPost(models.Model):
     title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=200, unique=True)
     content = CKEditor5Field('Content', config_name='extends')
     featured_image = models.ImageField(upload_to='featured_images/', null=True, blank=True)
     category = models.CharField(max_length=100, blank=True)
@@ -33,4 +35,6 @@ class BlogPost(models.Model):
         return self.title
 
     def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
         super().save(*args, **kwargs) 
