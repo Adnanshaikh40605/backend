@@ -1,1 +1,1 @@
-web: gunicorn backend.emergency:application --log-file - 
+web: bash entrypoint.sh 

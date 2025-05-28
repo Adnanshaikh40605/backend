@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["python39", "python39Packages.pip", "python39Packages.setuptools", "python39Packages.wheel"]
+nixPkgs = ["python311", "python311Packages.pip", "python311Packages.setuptools", "python311Packages.wheel"]
 
 [phases.install]
 cmds = [
@@ -8,7 +8,10 @@ cmds = [
 ]
 
 [phases.build]
-cmds = ["mkdir -p static"]
+cmds = [
+  "mkdir -p static",
+  "python manage.py collectstatic --noinput"
+]
 
 [start]
 cmd = "bash entrypoint.sh" 

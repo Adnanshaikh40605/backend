@@ -1,8 +1,11 @@
 [phases.setup]
-nixPkgs = ["python39", "python39Packages.pip", "python39Packages.setuptools", "python39Packages.wheel"]
+nixPkgs = ["python311", "python311Packages.pip", "python311Packages.setuptools", "python311Packages.wheel"]
 
 [phases.install]
-cmds = ["chmod +x railway-build.sh", "./railway-build.sh"]
+cmds = ["pip install -r requirements.txt"]
+
+[phases.build]
+cmds = ["python manage.py collectstatic --noinput"]
 
 [start]
 cmd = "gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT" 
