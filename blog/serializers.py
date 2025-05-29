@@ -32,6 +32,14 @@ class CommentSerializer(serializers.ModelSerializer):
         
     def to_representation(self, instance):
         representation = super().to_representation(instance)
+        
+        # Handle potentially missing fields
+        if not hasattr(instance, 'ip_address'):
+            representation['ip_address'] = None
+        
+        if not hasattr(instance, 'user_agent'):
+            representation['user_agent'] = None
+        
         # Include post information for frontend display
         if instance.post:
             representation['post'] = {
@@ -39,6 +47,7 @@ class CommentSerializer(serializers.ModelSerializer):
                 'title': instance.post.title,
                 'slug': instance.post.slug if hasattr(instance.post, 'slug') else None
             }
+        
         return representation
 
 class BlogPostListSerializer(serializers.ModelSerializer):

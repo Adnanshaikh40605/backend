@@ -15,6 +15,7 @@ class BlogPost(models.Model):
     featured_image = models.ImageField(upload_to='featured_images/', blank=True, null=True)
     slug = models.SlugField(max_length=250, unique=True, blank=True)
     published = models.BooleanField(default=False, db_index=True)
+    featured = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     

@@ -264,6 +264,49 @@ class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                name='post',
+                in_=openapi.IN_QUERY,
+                description='Filter comments by post ID',
+                type=openapi.TYPE_INTEGER,
+                required=False
+            ),
+            openapi.Parameter(
+                name='approved',
+                in_=openapi.IN_QUERY,
+                description='Filter comments by approval status (true/false)',
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                name='is_trash',
+                in_=openapi.IN_QUERY,
+                description='Filter comments by trash status (true/false)',
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                name='page',
+                in_=openapi.IN_QUERY,
+                description='Page number for pagination',
+                type=openapi.TYPE_INTEGER,
+                required=False
+            ),
+            openapi.Parameter(
+                name='limit',
+                in_=openapi.IN_QUERY,
+                description='Number of items per page',
+                type=openapi.TYPE_INTEGER,
+                required=False
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        """List comments with optional filtering by post, approval status, and trash status"""
+        return super().list(request, *args, **kwargs)
+    
     def get_queryset(self):
         queryset = self.queryset
         # Filter by post ID
@@ -280,9 +323,19 @@ class CommentViewSet(viewsets.ModelViewSet):
             elif approved.lower() == 'false':
                 queryset = queryset.filter(approved=False)
                 logger.info(f"Filtering for UNAPPROVED comments only for post {post}")
+        
+        # Filter by trash status
+        is_trash = self.request.query_params.get('is_trash')
+        if is_trash is not None:
+            if is_trash.lower() == 'true':
+                queryset = queryset.filter(is_trash=True)
+                logger.info(f"Filtering for TRASHED comments only")
+            elif is_trash.lower() == 'false':
+                queryset = queryset.filter(is_trash=False)
+                logger.info(f"Filtering for NON-TRASHED comments only")
                 
         # Log the query for debugging
-        logger.debug(f"Comment queryset filters: post={post}, approved={approved}")
+        logger.debug(f"Comment queryset filters: post={post}, approved={approved}, is_trash={is_trash}")
         logger.debug(f"Comment queryset SQL: {str(queryset.query)}")
         count = queryset.count()
         logger.debug(f"Comment queryset count: {count}")
@@ -299,7 +352,7 @@ class CommentViewSet(viewsets.ModelViewSet):
                 logger.info(f"Comment {comment.id}: approved={comment.approved}, content={comment.content[:30]}")
         
         return queryset
-    
+
     @swagger_auto_schema(
         operation_description="Retrieve the count of pending comments",
         responses={
@@ -336,6 +389,13 @@ class CommentViewSet(viewsets.ModelViewSet):
                 description='Approval status to filter by (true/false)',
                 type=openapi.TYPE_STRING,
                 required=False
+            ),
+            openapi.Parameter(
+                name='is_trash',
+                in_=openapi.IN_QUERY,
+                description='Trash status to filter by (true/false)',
+                type=openapi.TYPE_STRING,
+                required=False
             )
         ],
         responses={
@@ -363,10 +423,13 @@ class CommentViewSet(viewsets.ModelViewSet):
         total_comments = Comment.objects.count()
         approved_comments = Comment.objects.filter(approved=True).count()
         pending_comments = Comment.objects.filter(approved=False).count()
+        trashed_comments = Comment.objects.filter(is_trash=True).count()
+        non_trashed_comments = Comment.objects.filter(is_trash=False).count()
         
         # Check if filtering works
         post_filter = request.query_params.get('post')
         approved_filter = request.query_params.get('approved')
+        is_trash_filter = request.query_params.get('is_trash')
         
         filtered_queryset = self.get_queryset()
         filtered_count = filtered_queryset.count()
@@ -379,6 +442,7 @@ class CommentViewSet(viewsets.ModelViewSet):
                 'post_id': comment.post_id,
                 'content_preview': comment.content[:50] + ('...' if len(comment.content) > 50 else ''),
                 'approved': comment.approved,
+                'is_trash': comment.is_trash,
                 'created_at': comment.created_at
             })
         
@@ -388,11 +452,14 @@ class CommentViewSet(viewsets.ModelViewSet):
                 'total': total_comments,
                 'approved': approved_comments,
                 'pending': pending_comments,
+                'trashed': trashed_comments,
+                'non_trashed': non_trashed_comments,
                 'filtered': filtered_count,
             },
             'filters_applied': {
                 'post': post_filter,
                 'approved': approved_filter,
+                'is_trash': is_trash_filter
             },
             'request_params': dict(request.query_params),
             'sample_comments': sample_comments
@@ -1020,7 +1087,7 @@ def comment_counts(request):
         return JsonResponse({'error': str(e), 'detail': 'An error occurred while fetching comment counts'}, status=500)
 
 @swagger_auto_schema(
-    method='post',
+    methods=['post', 'get'],
     tags=['Posts'],
     operation_description="Validate a slug for uniqueness",
     request_body=openapi.Schema(
@@ -1031,27 +1098,48 @@ def comment_counts(request):
         },
         required=['slug']
     ),
+    manual_parameters=[
+        openapi.Parameter(
+            name='slug',
+            in_=openapi.IN_QUERY,
+            description='Slug to validate (for GET requests)',
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            name='post_id',
+            in_=openapi.IN_QUERY,
+            description='Optional post ID to exclude from validation (for GET requests)',
+            type=openapi.TYPE_INTEGER,
+            required=False
+        )
+    ],
     responses={
         200: openapi.Response(
             description="Slug validation result",
             schema=openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
-                    'is_valid': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                    'valid': openapi.Schema(type=openapi.TYPE_BOOLEAN),
                     'message': openapi.Schema(type=openapi.TYPE_STRING)
                 }
             )
         )
     }
 )
-@api_view(['POST'])
+@api_view(['POST', 'GET'])
 def validate_slug(request):
     """
     Validate if a slug is unique and properly formatted
     """
     try:
-        slug = request.data.get('slug')
-        post_id = request.data.get('post_id')  # Optional, for excluding current post in edit mode
+        # Handle both GET and POST requests
+        if request.method == 'GET':
+            slug = request.query_params.get('slug')
+            post_id = request.query_params.get('post_id')
+        else:  # POST
+            slug = request.data.get('slug')
+            post_id = request.data.get('post_id')  # Optional, for excluding current post in edit mode
         
         if not slug:
             return Response(
