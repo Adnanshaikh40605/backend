@@ -29,6 +29,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
 )
+from blog.views import CustomTokenObtainPairView, debug_token
 
 # Function to handle Swagger errors
 def swagger_error_handler(request, exception=None):
@@ -144,8 +145,8 @@ def welcome(request):
             
             <div class="footer">
                 <p>Contact: <a href="mailto:skadnan40605@gmail.com">skadnan40605@gmail.com</a></p>
-                <p>Backend URL: <a href="https://web-production-f03ff.up.railway.app/">https://web-production-f03ff.up.railway.app/</a></p>
-                <p>Frontend URL: <a href="https://blog-cms-frontend-ten.vercel.app/">https://blog-cms-frontend-ten.vercel.app/</a></p>
+                <p>Backend URL: <a href="https://web-production-2f30.up.railway.app/">https://web-production-2f30.up.railway.app/</a></p>
+                <p>Frontend URL: <a href="https://dohblog.vercel.app/">https://dohblog.vercel.app/</a></p>
             </div>
         </body>
     </html>
@@ -159,9 +160,10 @@ urlpatterns = [
     path('api/', include('blog.urls')),
     
     # JWT Authentication endpoints
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('api/debug-token/', debug_token, name='debug_token'),
     
     # CKEditor URLs
     path("ckeditor5/", include('django_ckeditor_5.urls')),

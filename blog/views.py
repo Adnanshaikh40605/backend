@@ -28,6 +28,8 @@ from .serializers import (
 )
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework_simplejwt.views import TokenObtainPairView
+import json
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -1660,49 +1662,111 @@ class RegisterView(generics.CreateAPIView):
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     """View for retrieving and updating user profile"""
-    queryset = User.objects.all()
     permission_classes = (IsAuthenticated,)
-    serializer_class = UserSerializer
     
     def get_object(self):
         return self.request.user
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def comment_counts_view(request):
-    """Get counts for comments in different states (all, pending, approved, trash)"""
-    try:
-        # Log the request for debugging
-        logger.info(f"Received request to comment_counts_view endpoint: {request.path}")
-        
-        # Force evaluate the counts to ensure they're accurate
-        all_count = Comment.objects.filter(is_trash=False).count()
-        pending_count = Comment.objects.filter(approved=False, is_trash=False).count()
-        approved_count = Comment.objects.filter(approved=True, is_trash=False).count()
-        trash_count = Comment.objects.filter(is_trash=True).count()
-        
-        # Log counts for debugging
-        logger.info(f"Comment counts: all={all_count}, pending={pending_count}, approved={approved_count}, trash={trash_count}")
-        
-        # Verify the counts match expectations
-        total_count = Comment.objects.count()
-        expected_sum = all_count + trash_count
-        if total_count != expected_sum:
-            logger.warning(f"Total comment count ({total_count}) doesn't match sum of all + trash ({expected_sum})")
-        
-        response_data = {
-            'all': all_count,
-            'pending': pending_count,
-            'approved': approved_count,
-            'trash': trash_count,
-            'status': 'success',
-            'message': 'Comment counts retrieved successfully',
-            'path': request.path
+    
+    def retrieve(self, request, *args, **kwargs):
+        user = self.get_object()
+        data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'is_staff': user.is_staff,
         }
+        return Response(data)
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        try:
+            response = super().post(request, *args, **kwargs)
+            return response
+        except Exception as e:
+            error_response = Response({
+                "error": str(e),
+                "detail": "Token generation failed",
+                "request_data": request.data
+            }, status=400)
+            return error_response
+    
+    def options(self, request, *args, **kwargs):
+        response = Response({
+            'message': 'OK',
+            'allowed_methods': ['POST', 'OPTIONS'],
+            'allowed_headers': ['Content-Type', 'Authorization']
+        }, status=200)
+        return response
+
+@api_view(['POST', 'GET', 'OPTIONS'])
+@permission_classes([AllowAny])
+def debug_token(request):
+    """Debug endpoint for token issues"""
+    if request.method == 'OPTIONS':
+        response = JsonResponse({'message': 'OPTIONS request received'})
+        return response
         
-        # Return the response
-        logger.info(f"Returning comment counts: {response_data}")
-        return JsonResponse(response_data)
+    if request.method == 'GET':
+        response = JsonResponse({
+            'message': 'This is the token debug endpoint. Send a POST request with username and password to test token generation.',
+            'endpoints': {
+                'token': '/api/token/',
+                'token_refresh': '/api/token/refresh/',
+                'token_verify': '/api/token/verify/',
+                'debug': '/api/debug-token/'
+            }
+        })
+        return response
+    
+    try:
+        # Get request data
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+            
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return JsonResponse({
+                'error': 'Missing credentials',
+                'message': 'Please provide both username and password',
+                'received_data': data
+            }, status=400)
+            
+        # Try to authenticate
+        from django.contrib.auth import authenticate
+        user = authenticate(username=username, password=password)
+        
+        if user is not None:
+            # User authenticated, now generate token manually
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh = RefreshToken.for_user(user)
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Authentication successful',
+                'user': username,
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            })
+        else:
+            # Authentication failed
+            return JsonResponse({
+                'error': 'Authentication failed',
+                'message': 'Invalid username or password',
+                'username': username
+            }, status=401)
+            
     except Exception as e:
-        logger.error(f"Error getting comment counts: {str(e)}", exc_info=True)
-        return JsonResponse({'error': str(e), 'detail': 'An error occurred while fetching comment counts'}, status=500)
+        import traceback
+        return JsonResponse({
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+            'request_method': request.method,
+            'content_type': request.content_type,
+            'headers': dict(request.headers)
+        }, status=500)
