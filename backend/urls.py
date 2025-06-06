@@ -20,11 +20,15 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import HttpResponse, JsonResponse
 from django.views.static import serve
-from blog.comment_api import comment_counts_direct
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 import traceback
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+    TokenVerifyView,
+)
 
 # Function to handle Swagger errors
 def swagger_error_handler(request, exception=None):
@@ -49,16 +53,24 @@ schema_view = get_schema_view(
 )
 
 # Wrap schema view with error handling
-def schema_view_with_error_handling(view):
-    def wrapped_view(request, *args, **kwargs):
-        try:
-            return view(request, *args, **kwargs)
-        except Exception as e:
-            return swagger_error_handler(request, e)
-    return wrapped_view
+def schema_view_with_error_handling(request, format=None):
+    try:
+        # Use the swagger UI view directly
+        view = schema_view.with_ui('swagger', cache_timeout=0)
+        return view(request, format=format)
+    except Exception as e:
+        tb = traceback.format_exc()
+        error_message = f"Error generating API schema: {str(e)}"
+        print(error_message)
+        print(tb)
+        return JsonResponse({
+            "error": "Error generating API documentation",
+            "message": str(e),
+            "traceback": tb
+        }, status=500)
 
 # Wrap only the swagger UI view with error handling since we're removing the others
-schema_view_swagger_ui = schema_view_with_error_handling(schema_view.with_ui('swagger'))
+# schema_view_swagger_ui = schema_view_with_error_handling(schema_view.with_ui('swagger'))
 
 # Welcome page
 def welcome(request):
@@ -143,17 +155,19 @@ urlpatterns = [
     path('', welcome, name='welcome'),
     path('admin/', admin.site.urls),
     
-    # Direct access to the comments counts endpoint
-    path('api/comments/counts/', comment_counts_direct, name='direct-comment-counts'),
-    
     # Include blog URLs with API prefix
     path('api/', include('blog.urls')),
+    
+    # JWT Authentication endpoints
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     
     # CKEditor URLs
     path("ckeditor5/", include('django_ckeditor_5.urls')),
     
     # Swagger documentation URL (only keeping the Swagger UI)
-    path('api/docs/', schema_view_swagger_ui, name='schema-swagger-ui'),
+    path('api/docs/', schema_view_with_error_handling, name='schema-swagger-ui'),
 ]
 
 # Serve media files in development

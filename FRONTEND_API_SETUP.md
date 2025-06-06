@@ -1,10 +1,10 @@
 # Frontend API Connection Guide
 
-This guide explains how to connect your frontend application to the Django API backend deployed on Railway.
+This guide explains how to connect your frontend application to the Django API backend.
 
 ## API Base URL
 
-Your Django API is now deployed at:
+Your Django API is deployed at:
 
 ```
 https://web-production-f03ff.up.railway.app
@@ -35,61 +35,61 @@ VITE_API_URL=https://web-production-f03ff.up.railway.app
 VITE_MEDIA_URL=https://web-production-f03ff.up.railway.app/media/
 ```
 
-### 2. Use these environment variables in your API service:
+### 2. API Service Structure
+
+The API services are organized in the following files:
+
+- `src/api/FRONTEND_API_SERVICE.js` - Main API service with core functionality
+- `src/api/apiEndpoints.js` - Centralized endpoint URLs
+- `src/api/apiService.js` - API service functions by resource type
+- `src/api/apiMocks.js` - Mock data for development
+
+### 3. Using the API Services
 
 ```javascript
-// src/api/apiService.js
+// Import the API services
+import { postAPI, commentAPI, mediaAPI } from './api/apiService';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || 'http://localhost:8000/media/';
-
-// For API requests
+// Fetch posts
 const fetchPosts = async () => {
-  const response = await fetch(`${API_URL}/api/posts/`);
-  return response.json();
+  const posts = await postAPI.getAll();
+  return posts;
 };
 
-// For image URLs
-const getImageUrl = (imagePath) => {
-  return `${MEDIA_URL}${imagePath}`;
+// Get a single post
+const getPost = async (id) => {
+  const post = await postAPI.getById(id);
+  return post;
 };
 
-export { API_URL, MEDIA_URL, fetchPosts, getImageUrl };
+// Create a new post
+const createPost = async (postData) => {
+  const newPost = await postAPI.create(postData);
+  return newPost;
+};
+
+// Get image URL
+const getImageUrl = (path) => {
+  return mediaAPI.getImageUrl(path);
+};
 ```
 
-### 3. Set up CORS (already configured on backend)
+### 4. CORS and CSRF Configuration
 
-The backend has been configured to accept requests from your frontend. If you're encountering CORS issues, make sure:
-
-1. Your frontend application URL is correctly set in the backend's `CORS_ALLOWED_ORIGINS` setting
-2. You're including the required credentials in your requests if using authentication
-
-### 4. Example of a POST request with CSRF token handling:
+The backend has been configured to accept requests from your frontend. For authenticated requests that modify data:
 
 ```javascript
-const createPost = async (postData) => {
-  const csrfToken = getCookie('csrftoken'); // You'll need to implement getCookie
-  
-  const response = await fetch(`${API_URL}/api/posts/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': csrfToken,
-    },
-    credentials: 'include', // Important for sending cookies
-    body: JSON.stringify(postData),
-  });
-  
-  return response.json();
+// Example of creating a comment with CSRF token
+const createComment = async (commentData) => {
+  const newComment = await commentAPI.create(commentData);
+  return newComment;
 };
-
-// Helper function to get cookies
-function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift();
-}
 ```
+
+The API service automatically handles:
+- CSRF token extraction from cookies
+- Proper headers for different request types
+- Credentials inclusion for authenticated requests
 
 ## Deploying Your Frontend
 
@@ -101,7 +101,7 @@ You can deploy your frontend to services like:
 
 After deploying your frontend, make sure to:
 
-1. Add your frontend URL to the backend settings by setting the `FRONTEND_URL` environment variable in Railway
+1. Add your frontend URL to the backend settings by setting the `FRONTEND_URL` environment variable
 2. Update any hardcoded URLs in your frontend code to use environment variables
 
 ## Testing the Connection
@@ -109,5 +109,13 @@ After deploying your frontend, make sure to:
 To verify the API connection is working:
 
 1. Open your browser console
-2. Try a simple fetch request to `https://web-production-f03ff.up.railway.app/api/posts/`
+2. Try a simple fetch request to the API
 3. Check that the response contains your blog post data 
+
+```javascript
+// Test API connection
+fetch('https://web-production-f03ff.up.railway.app/api/posts/')
+  .then(response => response.json())
+  .then(data => console.log('Posts:', data))
+  .catch(error => console.error('Error:', error));
+``` 

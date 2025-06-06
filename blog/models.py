@@ -1,35 +1,37 @@
 from django.db import models
 from django_ckeditor_5.fields import CKEditor5Field
-from django.utils.text import slugify
 import os
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
 import logging
+from django.utils.text import slugify
 
 logger = logging.getLogger(__name__)
 
 class BlogPost(models.Model):
     title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=250, unique=True, blank=True)
     content = CKEditor5Field('Content', config_name='extends')
     featured_image = models.ImageField(upload_to='featured_images/', blank=True, null=True)
-    slug = models.SlugField(max_length=250, unique=True, blank=True)
     published = models.BooleanField(default=False, db_index=True)
     featured = models.BooleanField(default=False, db_index=True)
+    position = models.IntegerField(default=0, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return self.title
 
-    class Meta:
-        ordering = ['-created_at']
-
     def save(self, *args, **kwargs):
-        # Generate slug if not provided
         if not self.slug:
             self.slug = slugify(self.title)
-        
+            # Ensure uniqueness
+            original_slug = self.slug
+            counter = 1
+            while BlogPost.objects.filter(slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
         # Optimize featured image if present
         if self.featured_image:
             try:
@@ -69,6 +71,9 @@ class BlogPost(models.Model):
                 logger.error(f"Error optimizing featured image: {str(e)}")
         
         super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['-created_at']
 
 class BlogImage(models.Model):
     post = models.ForeignKey(BlogPost, on_delete=models.CASCADE, related_name='images')

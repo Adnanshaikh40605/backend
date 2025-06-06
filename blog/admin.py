@@ -21,9 +21,10 @@ class CommentInline(admin.TabularInline):
 
 @admin.register(BlogPost)
 class BlogPostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'published', 'created_at', 'updated_at')
+    list_display = ('title', 'slug', 'published', 'created_at', 'updated_at')
     list_filter = ('published', 'created_at')
-    search_fields = ('title', 'content')
+    search_fields = ('title', 'content', 'slug')
+    prepopulated_fields = {'slug': ('title',)}
     inlines = [BlogImageInline, CommentInline]
     save_on_top = True
     list_per_page = 20
@@ -32,7 +33,7 @@ class BlogPostAdmin(admin.ModelAdmin):
     actions_on_bottom = True
     fieldsets = (
         ('Post Information', {
-            'fields': ('title', 'content'),
+            'fields': ('title', 'slug', 'content'),
             'classes': ('wide',),
         }),
         ('Publication', {
@@ -47,7 +48,7 @@ class BlogPostAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at')
 
     def view_on_site(self, obj):
-        return f"/api/posts/{obj.id}/"
+        return f"/api/posts/{obj.slug}/"
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
