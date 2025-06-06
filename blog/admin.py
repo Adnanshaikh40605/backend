@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import BlogPost, BlogImage, Comment
 from django.utils.html import format_html
-# ii
+
 class BlogImageInline(admin.TabularInline):
     model = BlogImage
     extra = 1

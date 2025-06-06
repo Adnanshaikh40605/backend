@@ -24,9 +24,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third-party apps
+    'corsheaders',  # Make sure this is before other third-party apps
     'rest_framework',
     'rest_framework_simplejwt',
-    'corsheaders',
     'django_ckeditor_5',
     'whitenoise.runserver_nostatic',
     'drf_yasg',
@@ -38,9 +38,9 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # CORS middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
+    'django.middleware.common.CommonMiddleware',  # After CORS middleware
     # 'django.middleware.csrf.CsrfViewMiddleware',  # CSRF disabled
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -178,33 +178,32 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
 
-# CORS
-CORS_ALLOW_ALL_ORIGINS = True  # Dev only
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
+# CORS Configuration
+CORS_ALLOW_ALL_ORIGINS = True
+
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
     'authorization',
     'content-type',
-    'dnt',
     'origin',
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
-    'x-http-method-override',
 ]
+
+# Production CORS settings (uncomment and modify when deploying)
+# CORS_ALLOW_ALL_ORIGINS = False
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://localhost:5173",
+#     "https://dohblog.vercel.app",
+# ]
+
+# Development CORS settings
+# if DEBUG:
+#     CORS_URLS_REGEX = r'^/api/.*$'
+#     CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
 
 # CKEditor 5
 CKEDITOR_5_CONFIGS = {
