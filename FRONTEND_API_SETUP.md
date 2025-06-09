@@ -4,26 +4,29 @@ This guide explains how to connect your frontend application to the Django API b
 
 ## API Base URL
 
-Your Django API is deployed at:
+The base URL for all API endpoints is:
 
-```
-https://web-production-f03ff.up.railway.app
-```
+http://localhost:8000
 
 ## API Endpoints
 
-All API endpoints are prefixed with `/api/`, for example:
-
-- Blog Posts: `https://web-production-f03ff.up.railway.app/api/posts/`
-- Comments: `https://web-production-f03ff.up.railway.app/api/comments/`
-- Images: `https://web-production-f03ff.up.railway.app/api/images/`
+- Blog Posts: `http://localhost:8000/api/posts/`
+- Comments: `http://localhost:8000/api/comments/`
+- Images: `http://localhost:8000/api/images/`
 
 ## Media Files
 
-Media files (uploads, images) are available at:
+Media files (images) are served from:
+
+http://localhost:8000/media/
+
+## Environment Variables
+
+For your frontend application, you should set these environment variables:
 
 ```
-https://web-production-f03ff.up.railway.app/media/
+VITE_API_URL=http://localhost:8000
+VITE_MEDIA_URL=http://localhost:8000/media/
 ```
 
 ## React/Vite Frontend Setup
@@ -31,8 +34,8 @@ https://web-production-f03ff.up.railway.app/media/
 ### 1. Create a `.env` file in your React project root:
 
 ```
-VITE_API_URL=https://web-production-f03ff.up.railway.app
-VITE_MEDIA_URL=https://web-production-f03ff.up.railway.app/media/
+VITE_API_URL=http://localhost:8000
+VITE_MEDIA_URL=http://localhost:8000/media/
 ```
 
 ### 2. API Service Structure
@@ -113,9 +116,8 @@ To verify the API connection is working:
 3. Check that the response contains your blog post data 
 
 ```javascript
-// Test API connection
-fetch('https://web-production-f03ff.up.railway.app/api/posts/')
+// Example API call
+fetch('http://localhost:8000/api/posts/')
   .then(response => response.json())
-  .then(data => console.log('Posts:', data))
-  .catch(error => console.error('Error:', error));
+  .then(data => console.log(data));
 ``` 

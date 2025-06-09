@@ -89,8 +89,7 @@ blog cms/
 ├── static/                    # Static files
 ├── templates/                 # HTML templates
 ├── manage.py                  # Django management script
-├── requirements.txt           # Python dependencies
-└── entrypoint.sh              # Deployment script
+└── requirements.txt           # Python dependencies
 ```
 
 ## 🚀 Getting Started
@@ -222,10 +221,8 @@ Recent performance improvements include:
 ## 🌐 Deployment
 
 The project includes configuration files for various deployment options:
-- Railway configuration for full-stack deployment
 - Vercel configuration for frontend deployment
 - Procfile for Heroku deployment
-- Docker support via entrypoint.sh
 
 ## 📝 License
 
@@ -237,4 +234,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Fixed duplicate API calls in the comment management interface
 - Improved comment count caching and API efficiency
 - Enhanced image optimization for better performance
-- Updated deployment configurations for Railway
+- Updated deployment configurations

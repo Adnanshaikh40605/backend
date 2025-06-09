@@ -16,7 +16,7 @@ class Command(BaseCommand):
                            help='Output format (json or yaml)')
         parser.add_argument('--file', type=str, default='api-docs',
                            help='Output filename without extension')
-        parser.add_argument('--url', type=str, default='https://web-production-f03ff.up.railway.app/',
+        parser.add_argument('--url', type=str, default='http://localhost:8000/',
                            help='Base URL for API server')
 
     def handle(self, *args, **options):

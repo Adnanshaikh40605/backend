@@ -145,7 +145,6 @@ def welcome(request):
             
             <div class="footer">
                 <p>Contact: <a href="mailto:skadnan40605@gmail.com">skadnan40605@gmail.com</a></p>
-                <p>Backend URL: <a href="https://web-production-f03ff.up.railway.app/">https://web-production-f03ff.up.railway.app/</a></p>
                 <p>Frontend URL: <a href="https://dohblog.vercel.app/">https://dohblog.vercel.app/</a></p>
             </div>
         </body>
