@@ -11,7 +11,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'your-default-secret-key')
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
-ALLOWED_HOSTS = ['*']  # Development only
+
+# Set allowed hosts based on environment
+if DEBUG:
+    ALLOWED_HOSTS = ['*']  # Allow all hosts in development
+else:
+    # Production hosts
+    ALLOWED_HOSTS = [
+        'web-production-f03ff.up.railway.app',  # Railway domain
+        'localhost',
+        '127.0.0.1',
+        '.railway.app',  # Allow all Railway subdomains
+    ]
+    # Add custom domain if specified
+    custom_domain = os.environ.get('CUSTOM_DOMAIN')
+    if custom_domain:
+        ALLOWED_HOSTS.append(custom_domain)
 
 # Application definition
 INSTALLED_APPS = [

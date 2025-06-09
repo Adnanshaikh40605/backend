@@ -53,6 +53,6 @@ else:
 "
 fi
 
-# Start Gunicorn server
-echo "🚀 Starting Gunicorn server..."
-gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT 
+# Start the application using run.py
+echo "🚀 Starting application using run.py..."
+python run.py 
