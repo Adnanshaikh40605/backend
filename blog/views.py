@@ -31,7 +31,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework_simplejwt.views import TokenObtainPairView
 import json
 
-# Setup logger
+# Setup logger 1234
 logger = logging.getLogger(__name__)
 
 class BlogPostViewSet(viewsets.ModelViewSet):
