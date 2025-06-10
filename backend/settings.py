@@ -165,11 +165,18 @@ SIMPLE_JWT = {
 
 # CORS Configuration
 if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_ALL_ORIGINS = False  # Change to False to use specific origins
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",
+        "https://your-frontend-domain.com",
+        "https://your-frontend-domain.vercel.app"
+    ]
+    CORS_ALLOW_CREDENTIALS = True  # Allow credentials
 else:
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
     CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    CORS_ALLOW_CREDENTIALS = True  # Allow credentials
 
 CORS_ALLOW_HEADERS = [
     'accept',

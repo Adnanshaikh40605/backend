@@ -1681,23 +1681,39 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
+        """
+        Custom token view to handle CORS and provide better error messages
+        """
         try:
             response = super().post(request, *args, **kwargs)
+            
+            # Allow credentials
+            response["Access-Control-Allow-Credentials"] = "true"
+            
+            # For development, could also be set to specific origins
+            response["Access-Control-Allow-Origin"] = request.META.get('HTTP_ORIGIN', 'http://localhost:3000')
+            
             return response
         except Exception as e:
-            error_response = Response({
-                "error": str(e),
-                "detail": "Token generation failed",
-                "request_data": request.data
-            }, status=400)
-            return error_response
+            logger.error(f"Token error: {str(e)}")
+            return Response(
+                {"detail": "Invalid credentials or server error", "error": str(e)},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
     
     def options(self, request, *args, **kwargs):
-        response = Response({
-            'message': 'OK',
-            'allowed_methods': ['POST', 'OPTIONS'],
-            'allowed_headers': ['Content-Type', 'Authorization']
-        }, status=200)
+        """
+        Handle pre-flight CORS request
+        """
+        response = super().options(request, *args, **kwargs)
+        
+        # Set CORS headers for preflight requests
+        response["Access-Control-Allow-Origin"] = request.META.get('HTTP_ORIGIN', 'http://localhost:3000')
+        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        response["Access-Control-Allow-Credentials"] = "true"
+        response["Access-Control-Max-Age"] = "86400"  # 24 hours
+        
         return response
 
 @api_view(['POST', 'GET', 'OPTIONS'])
