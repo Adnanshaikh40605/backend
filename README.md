@@ -235,3 +235,31 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Improved comment count caching and API efficiency
 - Enhanced image optimization for better performance
 - Updated deployment configurations
+
+## Railway Deployment
+
+This project is configured for deployment on Railway. To deploy:
+
+1. Create a PostgreSQL database on Railway
+2. Set the following environment variables in your Railway project:
+   - `DATABASE_URL`: Your PostgreSQL connection string
+   - `SECRET_KEY`: A secure random string for Django
+   - `DEBUG`: Set to `False` for production
+   - `ALLOWED_HOSTS`: Include `.railway.app` and any other domains
+
+3. Deploy using the Railway CLI:
+   ```
+   railway up
+   ```
+
+4. After deployment, run migrations:
+   ```
+   railway run python manage.py migrate
+   ```
+
+5. Create a superuser:
+   ```
+   railway run python manage.py createsuperuser
+   ```
+
+For more detailed instructions, see [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md).

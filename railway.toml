@@ -1,0 +1,9 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "gunicorn backend.wsgi:application --log-file -"
+restartPolicyType = "ON_FAILURE"
+
+[env]
+PORT = "8000" 
