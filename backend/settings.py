@@ -84,17 +84,23 @@ def mask_password(url):
     except Exception:
         return "Invalid database URL format"
 
-if os.environ.get('DATABASE_URL'):
-    DATABASES = {'default': dj_database_url.parse(DATABASE_URL, conn_max_age=60)}
+if DATABASE_URL:
     print(f"Using DATABASE_URL from environment: {mask_password(DATABASE_URL)}")
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL, 
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
 else:
+    print("WARNING: No DATABASE_URL found. Using SQLite for local development only. Add a DATABASE_URL to your environment.")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-    print("Using SQLite for local development")
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
