@@ -30,6 +30,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework_simplejwt.views import TokenObtainPairView
 import json
+from django.middleware.common import CommonMiddleware
 
 # Setup logger 1234
 logger = logging.getLogger(__name__)
@@ -1868,3 +1869,24 @@ def debug_token(request):
             response["Access-Control-Allow-Credentials"] = "true"
             
         return response
+
+# Add a global middleware to handle OPTIONS requests
+class OptionsMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.method == 'OPTIONS':
+            response = HttpResponse()
+            response['Access-Control-Allow-Origin'] = request.META.get('HTTP_ORIGIN', '*')
+            response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+            response['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+            response['Access-Control-Allow-Credentials'] = 'true'
+            response['Access-Control-Max-Age'] = '86400'  # 24 hours
+            return response
+        return self.get_response(request)
+
+# Add the middleware to the middleware list
+from django.conf import settings
+if 'blog.views.OptionsMiddleware' not in str(settings.MIDDLEWARE):
+    settings.MIDDLEWARE.insert(0, 'blog.views.OptionsMiddleware')

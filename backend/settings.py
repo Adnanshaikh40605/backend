@@ -197,6 +197,19 @@ else:
     
     CORS_ALLOW_CREDENTIALS = True  # Allow credentials
 
+# Additional CORS settings for preflight requests
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Allow all headers in requests
+CORS_ALLOW_ALL_HEADERS = True
+
 # Add a middleware to inject CORS headers for all responses
 class CorsMiddleware:
     def __init__(self, get_response):
@@ -209,6 +222,11 @@ class CorsMiddleware:
         if origin and (origin in CORS_ALLOWED_ORIGINS or CORS_ALLOW_ALL_ORIGINS):
             response["Access-Control-Allow-Origin"] = origin
             response["Access-Control-Allow-Credentials"] = "true"
+            response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            response["Access-Control-Allow-Headers"] = "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+            # Handle preflight requests
+            if request.method == 'OPTIONS':
+                response["Access-Control-Max-Age"] = "86400"  # 24 hours
         return response
 
 # Add the custom middleware to the middleware list
@@ -274,3 +292,14 @@ LOGGING = {
         },
     },
 }
+
+# Make sure corsheaders middleware is first
+if 'corsheaders.middleware.CorsMiddleware' in MIDDLEWARE:
+    # Remove it first to avoid duplicates
+    MIDDLEWARE.remove('corsheaders.middleware.CorsMiddleware')
+# Add it at the beginning
+MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')
+
+# Add additional CORS settings
+CORS_URLS_REGEX = r'^/api/.*$'
+CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours in seconds
