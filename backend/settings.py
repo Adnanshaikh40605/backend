@@ -168,15 +168,52 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = False  # Change to False to use specific origins
     CORS_ALLOWED_ORIGINS = [
         "http://localhost:3000",
-        "https://your-frontend-domain.com",
-        "https://your-frontend-domain.vercel.app"
+        "https://dohblog.vercel.app"
     ]
     CORS_ALLOW_CREDENTIALS = True  # Allow credentials
 else:
     CORS_ALLOW_ALL_ORIGINS = False
-    CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
-    CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    # Get CORS allowed origins from environment or use a default list
+    cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+    # If env variable is empty, add some sensible defaults
+    if not cors_origins or cors_origins == [""]:
+        cors_origins = [
+            "https://backend-production-49ec.up.railway.app",
+            "http://localhost:3000",
+            "https://dohblog.vercel.app"
+        ]
+    CORS_ALLOWED_ORIGINS = cors_origins
+    
+    # Get CSRF trusted origins from environment or use a default list
+    csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    # If env variable is empty, add some sensible defaults
+    if not csrf_origins or csrf_origins == [""]:
+        csrf_origins = [
+            "https://backend-production-49ec.up.railway.app",
+            "http://localhost:3000",
+            "https://dohblog.vercel.app"
+        ]
+    CSRF_TRUSTED_ORIGINS = csrf_origins
+    
     CORS_ALLOW_CREDENTIALS = True  # Allow credentials
+
+# Add a middleware to inject CORS headers for all responses
+class CorsMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        # Add CORS headers to all responses
+        origin = request.META.get('HTTP_ORIGIN', '')
+        if origin and (origin in CORS_ALLOWED_ORIGINS or CORS_ALLOW_ALL_ORIGINS):
+            response["Access-Control-Allow-Origin"] = origin
+            response["Access-Control-Allow-Credentials"] = "true"
+        return response
+
+# Add the custom middleware to the middleware list
+if "CorsMiddleware" not in str(MIDDLEWARE):
+    MIDDLEWARE.append('backend.settings.CorsMiddleware')
 
 CORS_ALLOW_HEADERS = [
     'accept',
