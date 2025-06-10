@@ -303,3 +303,6 @@ MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')
 # Add additional CORS settings
 CORS_URLS_REGEX = r'^/api/.*$'
 CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours in seconds
+
+# Make sure your Django application is listening on the PORT environment variable provided by Railway
+# The application should bind to 0.0.0.0 or :: (for IPv6) and use the PORT environment variable
