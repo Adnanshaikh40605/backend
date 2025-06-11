@@ -2,17 +2,23 @@
 import os
 import multiprocessing
 import sys
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, 
+                   format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+logger = logging.getLogger("gunicorn.conf")
 
 # Log the PORT environment variable
 port = os.environ.get('PORT', '8000')
-print(f"Gunicorn config: PORT environment variable is set to '{port}'")
+logger.info(f"Gunicorn config: PORT environment variable is set to '{port}'")
 
 # Bind to 0.0.0.0 to ensure the app is accessible from outside the container
 bind = f"0.0.0.0:{port}"
-print(f"Gunicorn will bind to: {bind}")
+logger.info(f"Gunicorn will bind to: {bind}")
 
-# Worker configuration
-workers = multiprocessing.cpu_count() * 2 + 1
+# Worker configuration - use fewer workers to reduce memory usage
+workers = min(multiprocessing.cpu_count() + 1, 4)  # Use at most 4 workers
 worker_class = "uvicorn.workers.UvicornWorker"
 
 # Logging
@@ -20,9 +26,10 @@ loglevel = "debug"
 accesslog = "-"  # stdout
 errorlog = "-"   # stderr
 
-# Timeout configuration
-timeout = 120
-graceful_timeout = 60
+# Timeout configuration - increase timeouts for Railway
+timeout = 180
+graceful_timeout = 90
+keepalive = 65
 
 # Prevent the worker from writing directly to stdout/stderr
 capture_output = True
@@ -30,13 +37,35 @@ capture_output = True
 # Print configuration on startup
 print_config = True
 
-# Log worker process events
-# child_exit = True
+# Don't daemonize to ensure Railway can see logs
+daemon = False
 
 # Ensure the application has time to load before accepting connections
 preload_app = False
 
 # Log function to print important information during startup
 def on_starting(server):
-    print(f"Gunicorn starting with PORT={port}", file=sys.stderr)
-    print(f"Binding to: {bind}", file=sys.stderr) 
+    logger.info(f"Gunicorn starting with PORT={port}")
+    logger.info(f"Binding to: {bind}")
+    logger.info(f"Worker class: {worker_class}")
+    logger.info(f"Worker count: {workers}")
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Current directory: {os.getcwd()}")
+    
+    # Print all environment variables for debugging (excluding sensitive ones)
+    logger.info("Environment variables:")
+    for key, value in os.environ.items():
+        if 'SECRET' not in key.upper() and 'PASSWORD' not in key.upper() and 'KEY' not in key.upper():
+            logger.info(f"  {key}: {value}")
+
+def on_exit(server):
+    logger.info("Gunicorn is shutting down")
+
+def worker_abort(worker):
+    logger.error(f"Worker {worker.pid} aborted!")
+
+def worker_exit(server, worker):
+    logger.warning(f"Worker {worker.pid} exited (signal: {worker.signal})")
+
+def post_fork(server, worker):
+    logger.info(f"Worker {worker.pid} forked") 

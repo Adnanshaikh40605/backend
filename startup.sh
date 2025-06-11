@@ -16,6 +16,10 @@ else
     echo "✅ Using PORT: $PORT"
 fi
 
+# Print all environment variables (excluding sensitive ones)
+echo "Environment variables:"
+env | grep -v -E 'SECRET|PASSWORD|KEY' | sort
+
 # Verify gunicorn will use the correct port
 echo "Gunicorn will bind to: 0.0.0.0:$PORT"
 
@@ -44,17 +48,32 @@ cat > staticfiles/health.html << EOF
     <h1>Health Check</h1>
     <p>This is a static health check file.</p>
     <p>Status: OK</p>
+    <p>Generated: $(date)</p>
+</body>
+</html>
+EOF
+
+# Create a simple health check endpoint
+mkdir -p staticfiles/health
+cat > staticfiles/health/index.html << EOF
+<!DOCTYPE html>
+<html>
+<head><title>Health Check</title></head>
+<body>
+    <h1>Health Check</h1>
+    <p>Status: OK</p>
+    <p>Generated: $(date)</p>
 </body>
 </html>
 EOF
 
 # Add a delay to ensure the application has time to fully initialize before health checks
-echo "Waiting for 5 seconds before starting the application to ensure proper initialization..."
-sleep 5
+echo "Waiting for 10 seconds before starting the application to ensure proper initialization..."
+sleep 10
 
 # Start the application - EXPLICITLY use the PORT environment variable
 echo "Starting Django application on port $PORT..."
 echo "Using gunicorn configuration file..."
 
 # Try to start gunicorn with explicit port binding, if it fails, start the fallback health check server
-exec gunicorn -c gunicorn.conf.py -b 0.0.0.0:$PORT backend.asgi:application || start_health_fallback 
+gunicorn -c gunicorn.conf.py -b 0.0.0.0:$PORT backend.asgi:application || start_health_fallback 
