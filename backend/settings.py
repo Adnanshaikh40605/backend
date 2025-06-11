@@ -14,7 +14,20 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'your-default-secret-key')
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 # Dynamically set allowed hosts from env
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1")
+ALLOWED_HOSTS = allowed_hosts_env.split(",")
+
+# Always allow Railway domains - explicitly add these regardless of what's in the env var
+railway_domains = [
+    ".railway.app",
+    "*.railway.app",
+    "*.up.railway.app",
+    "backend-production-49ec.up.railway.app"
+]
+
+for domain in railway_domains:
+    if domain not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(domain)
 
 # Application definition
 INSTALLED_APPS = [
@@ -287,6 +300,21 @@ LOGGING = {
             'propagate': False,
         },
         'blog': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'health': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'asgi': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'wsgi': {
             'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': False,
