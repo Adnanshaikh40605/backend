@@ -25,7 +25,7 @@ capture_output = True
 print_config = True
 
 # Log worker process events
-child_exit = True
+# child_exit = True
 
 # Ensure the application has time to load before accepting connections
 preload_app = False 
