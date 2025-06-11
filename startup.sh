@@ -6,6 +6,21 @@ set -x
 
 echo "Starting deployment at $(date)"
 
+# Debug PORT environment variable
+echo "📢 Railway PORT environment variable: $PORT"
+if [ -z "$PORT" ]; then
+    echo "⚠️ WARNING: PORT environment variable is not set! Using default port 8000."
+    export PORT=8000
+else
+    echo "✅ Using PORT: $PORT"
+fi
+
+# Function to start the fallback health check server
+start_health_fallback() {
+    echo "⚠️ Django application failed to start. Starting fallback health check server..."
+    python health_check.py
+}
+
 # Run migrations
 echo "Running database migrations..."
 python manage.py migrate --noinput || echo "Migrations failed, but continuing..."
@@ -32,6 +47,9 @@ EOF
 echo "Waiting for 5 seconds before starting the application to ensure proper initialization..."
 sleep 5
 
-# Start the application
-echo "Starting Django application..."
-exec gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.asgi:application --bind 0.0.0.0:$PORT --log-level debug 
+# Start the application - explicitly use the PORT environment variable
+echo "Starting Django application on port $PORT..."
+echo "Using gunicorn configuration file..."
+
+# Try to start gunicorn, if it fails, start the fallback health check server
+exec gunicorn -c gunicorn.conf.py backend.asgi:application || start_health_fallback 
