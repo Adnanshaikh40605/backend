@@ -33,6 +33,7 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView,
 )
 from blog.views import CustomTokenObtainPairView, debug_token
+from health.views import health_check
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -46,77 +47,6 @@ def swagger_error_handler(request, exception=None):
         "message": error_message,
         "traceback": tb
     }, status=500)
-
-# Health check endpoint for Railway
-def health_check(request):
-    """Health check endpoint for Railway"""
-    try:
-        logger.info(f"Health check hit at {timezone.now().isoformat()} from {request.META.get('REMOTE_ADDR', 'unknown')}")
-        
-        # Log request details for debugging
-        logger.debug(f"Request headers: {dict(request.headers)}")
-        logger.debug(f"Request path: {request.path}")
-        
-        # If requested as JSON, return JSON response
-        if request.headers.get('Accept', '').find('application/json') != -1:
-            return JsonResponse({
-                'status': 'ok', 
-                'server_time': timezone.now().isoformat(),
-                'request_info': {
-                    'path': request.path,
-                    'method': request.method,
-                    'remote_addr': request.META.get('REMOTE_ADDR', 'unknown'),
-                }
-            })
-        
-        # Otherwise return HTML response
-        try:
-            return render(request, 'health.html', {'server_time': timezone.now()})
-        except Exception as e:
-            logger.error(f"Error rendering health template: {str(e)}")
-            # Fallback to simple response if template rendering fails
-            return HttpResponse(f"Status: OK<br>Server time: {timezone.now()}", content_type='text/html')
-    except Exception as e:
-        logger.error(f"Health check error: {str(e)}")
-        logger.error(traceback.format_exc())
-        # Still return 200 status code to pass the health check
-        return JsonResponse({
-            'status': 'warning',
-            'message': 'Health check encountered an error but service is running',
-            'error': str(e)
-        }, status=200)
-
-# Basic Swagger configuration
-schema_view = get_schema_view(
-   openapi.Info(
-      title="Blog CMS API",
-      default_version='v1',
-      description="API documentation for the Blog CMS platform",
-      contact=openapi.Contact(email="skadnan40605@gmail.com"),
-   ),
-   public=True,
-   permission_classes=(permissions.AllowAny,),
-)
-
-# Wrap schema view with error handling
-def schema_view_with_error_handling(request, format=None):
-    try:
-        # Use the swagger UI view directly
-        view = schema_view.with_ui('swagger', cache_timeout=0)
-        return view(request, format=format)
-    except Exception as e:
-        tb = traceback.format_exc()
-        error_message = f"Error generating API schema: {str(e)}"
-        print(error_message)
-        print(tb)
-        return JsonResponse({
-            "error": "Error generating API documentation",
-            "message": str(e),
-            "traceback": tb
-        }, status=500)
-
-# Wrap only the swagger UI view with error handling since we're removing the others
-# schema_view_swagger_ui = schema_view_with_error_handling(schema_view.with_ui('swagger'))
 
 # Welcome page
 def welcome(request):
@@ -196,11 +126,53 @@ def welcome(request):
     </html>
     """)
 
+# Basic Railway health check at root level
+def simple_health_check(request):
+    """Simplest possible health check for Railway"""
+    return HttpResponse("OK", content_type="text/plain")
+
+# Wrap schema view with error handling
+def schema_view_with_error_handling(request, format=None):
+    try:
+        # Use the swagger UI view directly
+        view = schema_view.with_ui('swagger', cache_timeout=0)
+        return view(request, format=format)
+    except Exception as e:
+        tb = traceback.format_exc()
+        error_message = f"Error generating API schema: {str(e)}"
+        print(error_message)
+        print(tb)
+        return JsonResponse({
+            "error": "Error generating API documentation",
+            "message": str(e),
+            "traceback": tb
+        }, status=500)
+
+# Basic Swagger configuration
+schema_view = get_schema_view(
+   openapi.Info(
+      title="Blog CMS API",
+      default_version='v1',
+      description="API documentation for the Blog CMS platform",
+      contact=openapi.Contact(email="skadnan40605@gmail.com"),
+   ),
+   public=True,
+   permission_classes=(permissions.AllowAny,),
+)
+
 urlpatterns = [
+    # Root paths
     path('', welcome, name='welcome'),
+    
+    # Railway health check endpoints - multiple to ensure at least one works
+    path('health', health_check, name='health_check_no_slash'),  # without trailing slash
+    path('health/', health_check, name='health_check_with_slash'),  # with trailing slash
+    path('railway-health/', simple_health_check, name='railway_health_check'),
+    
+    # Admin
     path('admin/', admin.site.urls),
     
-    # Health check endpoint at root level
+    # Include health app URLs
     path('health/', include('health.urls')),
     
     # Include blog URLs with API prefix

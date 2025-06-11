@@ -30,6 +30,29 @@ start_health_fallback() {
     python health_check.py
 }
 
+# Create a directory for static files if it doesn't exist
+mkdir -p staticfiles
+
+# Create various health check endpoints for Railway
+echo "Creating health check files..."
+mkdir -p staticfiles/health
+mkdir -p staticfiles/railway-health
+
+# Simple health check file
+cat > staticfiles/health/index.html << EOF
+OK
+EOF
+
+# Railway health check file
+cat > staticfiles/railway-health/index.html << EOF
+OK
+EOF
+
+# Main health check file
+cat > staticfiles/health.html << EOF
+OK
+EOF
+
 # Run migrations
 echo "Running database migrations..."
 python manage.py migrate --noinput || echo "Migrations failed, but continuing..."
@@ -38,42 +61,19 @@ python manage.py migrate --noinput || echo "Migrations failed, but continuing...
 echo "Collecting static files..."
 python manage.py collectstatic --noinput || echo "Static collection failed, but continuing..."
 
-# Create a simple health check file for direct access
-mkdir -p staticfiles
-cat > staticfiles/health.html << EOF
-<!DOCTYPE html>
-<html>
-<head><title>Health Check Static</title></head>
-<body>
-    <h1>Health Check</h1>
-    <p>This is a static health check file.</p>
-    <p>Status: OK</p>
-    <p>Generated: $(date)</p>
-</body>
-</html>
-EOF
-
-# Create a simple health check endpoint
-mkdir -p staticfiles/health
-cat > staticfiles/health/index.html << EOF
-<!DOCTYPE html>
-<html>
-<head><title>Health Check</title></head>
-<body>
-    <h1>Health Check</h1>
-    <p>Status: OK</p>
-    <p>Generated: $(date)</p>
-</body>
-</html>
-EOF
-
 # Add a delay to ensure the application has time to fully initialize before health checks
-echo "Waiting for 10 seconds before starting the application to ensure proper initialization..."
-sleep 10
+echo "Waiting for 5 seconds before starting the application..."
+sleep 5
 
-# Start the application - EXPLICITLY use the PORT environment variable
+# Start the application
 echo "Starting Django application on port $PORT..."
-echo "Using gunicorn configuration file..."
 
-# Try to start gunicorn with explicit port binding, if it fails, start the fallback health check server
-gunicorn -c gunicorn.conf.py -b 0.0.0.0:$PORT backend.asgi:application || start_health_fallback 
+# Try first with ASGI (preferred)
+echo "Attempting to start with ASGI..."
+gunicorn --bind 0.0.0.0:$PORT --workers 2 --worker-class uvicorn.workers.UvicornWorker backend.asgi:application || {
+    echo "ASGI startup failed, falling back to WSGI..."
+    gunicorn --bind 0.0.0.0:$PORT --workers 2 backend.wsgi:application || {
+        echo "WSGI startup failed, starting fallback health check server..."
+        start_health_fallback
+    }
+} 

@@ -19,14 +19,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . .
 
+# Make sure startup script is executable
+RUN chmod +x startup.sh
+
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
 # Run migrations at build time (can be skipped if you prefer to run migrations at runtime)
 # RUN python manage.py migrate
 
-# Expose port
+# Expose port (will be overridden by Railway PORT env var)
 EXPOSE 8000
 
-# Start the application
-CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000", "--log-file", "-"] 
+# Start the application using the startup script
+CMD ["bash", "startup.sh"] 
