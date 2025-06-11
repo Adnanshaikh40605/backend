@@ -20,6 +20,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import HttpResponse, JsonResponse
 from django.views.static import serve
+from django.shortcuts import render
+from django.utils import timezone
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
@@ -40,6 +42,20 @@ def swagger_error_handler(request, exception=None):
         "message": error_message,
         "traceback": tb
     }, status=500)
+
+# Health check endpoint for Railway
+def health_check(request):
+    """Health check endpoint for Railway"""
+    # If requested as JSON, return JSON response
+    if request.headers.get('Accept', '').find('application/json') != -1:
+        return JsonResponse({'status': 'ok', 'server_time': timezone.now().isoformat()})
+    
+    # Otherwise return HTML response
+    try:
+        return render(request, 'health.html', {'server_time': timezone.now()})
+    except Exception as e:
+        # Fallback to simple response if template rendering fails
+        return HttpResponse(f"Status: OK<br>Server time: {timezone.now()}", content_type='text/html')
 
 # Basic Swagger configuration
 schema_view = get_schema_view(
@@ -154,6 +170,9 @@ def welcome(request):
 urlpatterns = [
     path('', welcome, name='welcome'),
     path('admin/', admin.site.urls),
+    
+    # Health check endpoint at root level
+    path('health/', health_check, name='health_check'),
     
     # Include blog URLs with API prefix
     path('api/', include('blog.urls')),
