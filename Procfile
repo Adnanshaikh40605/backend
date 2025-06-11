@@ -1,1 +1,1 @@
-web: gunicorn -c gunicorn.conf.py backend.asgi:application 
+web: bash startup.sh 
