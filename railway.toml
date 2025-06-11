@@ -5,13 +5,16 @@ buildCommand = "pip install -r requirements.txt"
 [deploy]
 startCommand = "bash startup.sh"
 healthcheckPath = "/health/"
-healthcheckTimeout = 300
+healthcheckTimeout = 60
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
 
 [deploy.healthcheck]
 path = "/health/"
-interval = 10
-timeout = 5
-retries = 3
+interval = 15
+timeout = 10
+retries = 5
+grace_period = 30
 
 [deploy.envs]
 PYTHONUNBUFFERED = "1"

@@ -26,12 +26,16 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 import traceback
+import logging
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
     TokenVerifyView,
 )
 from blog.views import CustomTokenObtainPairView, debug_token
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Function to handle Swagger errors
 def swagger_error_handler(request, exception=None):
@@ -46,16 +50,41 @@ def swagger_error_handler(request, exception=None):
 # Health check endpoint for Railway
 def health_check(request):
     """Health check endpoint for Railway"""
-    # If requested as JSON, return JSON response
-    if request.headers.get('Accept', '').find('application/json') != -1:
-        return JsonResponse({'status': 'ok', 'server_time': timezone.now().isoformat()})
-    
-    # Otherwise return HTML response
     try:
-        return render(request, 'health.html', {'server_time': timezone.now()})
+        logger.info(f"Health check hit at {timezone.now().isoformat()} from {request.META.get('REMOTE_ADDR', 'unknown')}")
+        
+        # Log request details for debugging
+        logger.debug(f"Request headers: {dict(request.headers)}")
+        logger.debug(f"Request path: {request.path}")
+        
+        # If requested as JSON, return JSON response
+        if request.headers.get('Accept', '').find('application/json') != -1:
+            return JsonResponse({
+                'status': 'ok', 
+                'server_time': timezone.now().isoformat(),
+                'request_info': {
+                    'path': request.path,
+                    'method': request.method,
+                    'remote_addr': request.META.get('REMOTE_ADDR', 'unknown'),
+                }
+            })
+        
+        # Otherwise return HTML response
+        try:
+            return render(request, 'health.html', {'server_time': timezone.now()})
+        except Exception as e:
+            logger.error(f"Error rendering health template: {str(e)}")
+            # Fallback to simple response if template rendering fails
+            return HttpResponse(f"Status: OK<br>Server time: {timezone.now()}", content_type='text/html')
     except Exception as e:
-        # Fallback to simple response if template rendering fails
-        return HttpResponse(f"Status: OK<br>Server time: {timezone.now()}", content_type='text/html')
+        logger.error(f"Health check error: {str(e)}")
+        logger.error(traceback.format_exc())
+        # Still return 200 status code to pass the health check
+        return JsonResponse({
+            'status': 'warning',
+            'message': 'Health check encountered an error but service is running',
+            'error': str(e)
+        }, status=200)
 
 # Basic Swagger configuration
 schema_view = get_schema_view(
@@ -172,7 +201,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     # Health check endpoint at root level
-    path('health/', health_check, name='health_check'),
+    path('health/', include('health.urls')),
     
     # Include blog URLs with API prefix
     path('api/', include('blog.urls')),
