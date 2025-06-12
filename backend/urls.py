@@ -158,21 +158,19 @@ urlpatterns = [
     # Root paths
     path('', welcome, name='welcome'),
     
-    # Railway health check endpoints - multiple to ensure at least one works
-    path('health', health_check, name='health_check_no_slash'),  # without trailing slash
+    # Direct health check endpoint for Railway
     path('health/', health_check, name='health_check_with_slash'),  # with trailing slash
+    path('health', health_check, name='health_check_no_slash'),  # without trailing slash
+    
+    # Legacy health check endpoints
     path('railway-health/', simple_health_check, name='railway_health_check'),
     path('railway-health', simple_health_check, name='railway_health_check_no_slash'),
     
-    # Additional health check routes directly from the health app
-    path('railway-health-app/', include('health.urls'), name='railway_health_app'),
+    # Health app URLs (nested under health-app)
     path('health-app/', include('health.urls'), name='health_app'),
     
     # Admin
     path('admin/', admin.site.urls),
-    
-    # Include health app URLs
-    path('health/', include('health.urls')),
     
     # Include blog URLs with API prefix
     path('api/', include('blog.urls')),
