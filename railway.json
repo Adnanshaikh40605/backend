@@ -5,17 +5,17 @@
     "buildCommand": "pip install -r requirements.txt"
   },
   "deploy": {
-    "startCommand": "bash ultra_simple.sh",
+    "startCommand": "bash railway_deploy.sh",
     "healthcheckPath": "/",
-    "healthcheckTimeout": 60,
+    "healthcheckTimeout": 30,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10,
     "healthcheck": {
       "path": "/",
-      "interval": 15,
+      "interval": 10,
       "timeout": 5,
       "retries": 3,
-      "gracePeriod": 60
+      "gracePeriod": 30
     }
   }
 } 
