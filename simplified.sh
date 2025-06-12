@@ -7,9 +7,15 @@ echo "Content of directory: $(ls -la)"
 
 echo "PORT environment variable is: $PORT"
 
-# Test health check URL directly
-echo "Testing health check URL with curl:"
-python -c "import django; django.setup(); from django.urls import reverse; from django.test import Client; c = Client(); response = c.get('/health'); print(f'Response status: {response.status_code}'); print(f'Response content: {response.content}')" || echo "Failed to test health check URL"
+# Check if wsgi.py exists and show its content
+echo "Checking wsgi.py file:"
+if [ -f wsgi.py ]; then
+    echo "wsgi.py exists"
+    echo "First 10 lines of wsgi.py:"
+    head -n 10 wsgi.py
+else
+    echo "ERROR: wsgi.py not found"
+fi
 
 echo "Running migrations..."
 python manage.py migrate --noinput
@@ -21,9 +27,10 @@ python manage.py collectstatic --noinput
 mkdir -p staticfiles
 echo '{"status": "ok"}' > staticfiles/health.json
 
-# Configure whitenoise to serve static files
+# Configure environment variables
 export DJANGO_SETTINGS_MODULE=backend.settings
 export PYTHONPATH=/app
+export ALLOWED_HOSTS="*"
 
 echo "Starting Gunicorn on 0.0.0.0:$PORT..."
-PYTHONUNBUFFERED=1 gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --log-level debug --timeout 120 
+PYTHONUNBUFFERED=1 gunicorn wsgi:application --bind 0.0.0.0:$PORT --workers 2 --log-level debug --timeout 120 --error-logfile - 

@@ -17,6 +17,10 @@ DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1")
 ALLOWED_HOSTS = allowed_hosts_env.split(",")
 
+# Add wildcard to allow all hosts
+if '*' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('*')
+
 # Always allow Railway domains - explicitly add these regardless of what's in the env var
 railway_domains = [
     ".railway.app",
