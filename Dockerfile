@@ -12,7 +12,7 @@ import sys \n\
 # Get port from environment - default to 8080 for Railway \n\
 PORT = int(os.environ.get("PORT", 8080)) \n\
 print(f"Starting health check server on port {PORT}") \n\
-print(f"PORT environment variable: {os.environ.get(\"PORT\", \"Not set\")}") \n\
+print("PORT environment variable:", os.environ.get("PORT", "Not set")) \n\
 print(f"Python version: {sys.version}") \n\
 print(f"Current directory: {os.getcwd()}") \n\
 \n\
