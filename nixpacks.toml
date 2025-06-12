@@ -1,11 +1,11 @@
 [phases.setup]
-nixPkgs = ["nodejs", "python311", "postgresql", "gcc"]
+nixPkgs = ["python310", "gcc"]
 
 [phases.install]
-cmds = ["pip install --upgrade pip", "pip install -r requirements.txt"]
+cmds = ["python -m pip install --upgrade pip", "pip install -r requirements.txt"]
 
 [phases.build]
-cmds = ["python manage.py collectstatic --noinput", "python manage.py migrate"]
+cmds = ["python manage.py collectstatic --noinput"]
 
 [start]
-cmd = "gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.asgi:application --bind 0.0.0.0:$PORT" 
+cmd = "gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --workers 2" 

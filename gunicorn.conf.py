@@ -13,23 +13,32 @@ logger = logging.getLogger("gunicorn.conf")
 port = os.environ.get('PORT', '8000')
 logger.info(f"Gunicorn config: PORT environment variable is set to '{port}'")
 
-# Bind to 0.0.0.0 to ensure the app is accessible from outside the container
-bind = f"0.0.0.0:{port}"
+# Bind to 0.0.0.0 to allow external access
+bind = f"0.0.0.0:{os.environ.get('PORT', '8000')}"
 logger.info(f"Gunicorn will bind to: {bind}")
 
-# Worker configuration - use fewer workers to reduce memory usage
-workers = min(multiprocessing.cpu_count() + 1, 4)  # Use at most 4 workers
-worker_class = "uvicorn.workers.UvicornWorker"
+# Use multiple workers based on CPU cores
+workers = os.environ.get("GUNICORN_WORKERS", multiprocessing.cpu_count() * 2 + 1)
+logger.info(f"Gunicorn will use {workers} workers")
 
-# Logging
-loglevel = "debug"
-accesslog = "-"  # stdout
-errorlog = "-"   # stderr
+# Set worker timeout to 120 seconds
+timeout = 120
 
-# Timeout configuration - increase timeouts for Railway
-timeout = 180
-graceful_timeout = 90
-keepalive = 65
+# Enable keepalive for better performance
+keepalive = 5
+
+# Enable access logging
+accesslog = "-"
+errorlog = "-"
+
+# Set log level
+loglevel = "info"
+
+# Use standard sync worker class for Django WSGI
+worker_class = "sync"
+
+# Preload the application for better performance
+preload_app = True
 
 # Prevent the worker from writing directly to stdout/stderr
 capture_output = True
@@ -39,9 +48,6 @@ print_config = True
 
 # Don't daemonize to ensure Railway can see logs
 daemon = False
-
-# Ensure the application has time to load before accepting connections
-preload_app = False
 
 # Log function to print important information during startup
 def on_starting(server):

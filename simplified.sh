@@ -1,21 +1,18 @@
 #!/bin/bash
-# This is the script Railway is trying to run
+set -e
 
-# Print debug info
-echo "Running simplified.sh script"
+echo "=== Starting Django ==="
 echo "Current directory: $(pwd)"
-echo "Content of directory: $(ls -la)"
-
 echo "PORT environment variable is: $PORT"
 
-# Apply migrations
-echo "Applying migrations..."
+echo "Running migrations..."
 python manage.py migrate --noinput
 
-# Collect static files
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
-# Start Django on the correct network interface
-echo "Starting Django on 0.0.0.0:$PORT..."
-python manage.py runserver 0.0.0.0:$PORT 
+mkdir -p staticfiles
+echo '{"status": "ok"}' > staticfiles/health.json
+
+echo "Starting Gunicorn on 0.0.0.0:$PORT..."
+PYTHONUNBUFFERED=1 gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --log-level debug 
