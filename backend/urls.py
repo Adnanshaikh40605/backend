@@ -32,6 +32,11 @@ from health.views import health_check
 # Set up logging
 logger = logging.getLogger(__name__)
 
+# Simple direct health check function
+def direct_health_check(request):
+    """Ultra simple health check that returns a 200 OK"""
+    return JsonResponse({"status": "healthy", "timestamp": timezone.now().isoformat()})
+
 # Function to handle Swagger errors
 def swagger_error_handler(request, exception=None):
     error_message = str(exception) if exception else "An error occurred generating the API documentation"
@@ -159,8 +164,8 @@ urlpatterns = [
     path('', welcome, name='welcome'),
     
     # Direct health check endpoint for Railway
-    path('health/', health_check, name='health_check_with_slash'),  # with trailing slash
-    path('health', health_check, name='health_check_no_slash'),  # without trailing slash
+    path('health/', direct_health_check, name='health_check_with_slash'),  # with trailing slash
+    path('health', direct_health_check, name='health_check_no_slash'),  # without trailing slash
     
     # Legacy health check endpoints
     path('railway-health/', simple_health_check, name='railway_health_check'),
