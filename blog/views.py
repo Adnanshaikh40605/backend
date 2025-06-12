@@ -28,7 +28,6 @@ from .serializers import (
 )
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework_simplejwt.views import TokenObtainPairView
 import json
 from django.middleware.common import CommonMiddleware
 
@@ -60,22 +59,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     queryset = BlogPost.objects.all().order_by('-created_at')
     serializer_class = BlogPostSerializer
     lookup_field = 'slug'  # Use slug instead of pk for all operations
-    
-    def get_permissions(self):
-        """
-        Override permissions:
-        - Allow anyone to list and retrieve posts
-        - Require authentication for create, update, delete
-        """
-        logger.info(f"BlogPostViewSet - Action: {self.action}")
-        
-        if self.action in ['list', 'retrieve']:
-            permission_classes = [AllowAny]
-        else:
-            permission_classes = [IsAuthenticated]
-            
-        logger.info(f"BlogPostViewSet - Using permission classes: {permission_classes}")
-        return [permission() for permission in permission_classes]
+    permission_classes = [AllowAny]
     
     def get_serializer_class(self):
         if self.action == 'list':
@@ -498,18 +482,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     """
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    
-    def get_permissions(self):
-        """
-        Override permissions:
-        - Allow anyone to create comments and view approved comments
-        - Require authentication for moderation actions
-        """
-        if self.action in ['create', 'list', 'retrieve', 'approved_for_post', 'counts']:
-            permission_classes = [AllowAny]
-        else:
-            permission_classes = [IsAuthenticated]
-        return [permission() for permission in permission_classes]
+    permission_classes = [AllowAny]
     
     @swagger_auto_schema(
         operation_description="List comments with optional filtering by post, approval status, and trash status",
@@ -1339,7 +1312,7 @@ def list_urls(request):
     }
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def comment_action(request, action, comment_id=None):
     """Handle comment actions from admin interface"""
     try:
@@ -1663,12 +1636,24 @@ class RegisterView(generics.CreateAPIView):
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     """View for retrieving and updating user profile"""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (AllowAny,)
     
     def get_object(self):
         return self.request.user
     
     def retrieve(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            # Return a dummy user object for non-authenticated users
+            data = {
+                'id': 0,
+                'username': 'guest',
+                'email': '',
+                'first_name': 'Guest',
+                'last_name': 'User',
+                'is_staff': False,
+            }
+            return Response(data)
+            
         user = self.get_object()
         data = {
             'id': user.id,
@@ -1679,196 +1664,6 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
             'is_staff': user.is_staff,
         }
         return Response(data)
-
-class CustomTokenObtainPairView(TokenObtainPairView):
-    def post(self, request, *args, **kwargs):
-        """
-        Custom token view to handle CORS and provide better error messages
-        """
-        try:
-            response = super().post(request, *args, **kwargs)
-            
-            # Allow credentials
-            response["Access-Control-Allow-Credentials"] = "true"
-            
-            # Get the origin from request headers
-            origin = request.META.get('HTTP_ORIGIN', '')
-            
-            # Check if the origin is allowed
-            from django.conf import settings
-            if origin and (origin in settings.CORS_ALLOWED_ORIGINS or settings.CORS_ALLOW_ALL_ORIGINS):
-                response["Access-Control-Allow-Origin"] = origin
-            elif origin and 'localhost' in origin:
-                response["Access-Control-Allow-Origin"] = origin
-            else:
-                # For production or if specific origin not found
-                response["Access-Control-Allow-Origin"] = origin
-            
-            return response
-        except Exception as e:
-            logger.error(f"Token error: {str(e)}")
-            return Response(
-                {"detail": "Invalid credentials or server error", "error": str(e)},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-    
-    def options(self, request, *args, **kwargs):
-        """
-        Handle pre-flight CORS request
-        """
-        response = super().options(request, *args, **kwargs)
-        
-        # Get the origin from request headers
-        origin = request.META.get('HTTP_ORIGIN', '')
-        
-        # Check if the origin is allowed
-        from django.conf import settings
-        if origin and (origin in settings.CORS_ALLOWED_ORIGINS or settings.CORS_ALLOW_ALL_ORIGINS):
-            response["Access-Control-Allow-Origin"] = origin
-        elif origin and 'localhost' in origin:
-            response["Access-Control-Allow-Origin"] = origin
-        else:
-            # For production or if specific origin not found
-            response["Access-Control-Allow-Origin"] = origin
-            
-        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-        response["Access-Control-Allow-Credentials"] = "true"
-        response["Access-Control-Max-Age"] = "86400"  # 24 hours
-        
-        return response
-
-@api_view(['POST', 'GET', 'OPTIONS'])
-@permission_classes([AllowAny])
-def debug_token(request):
-    """
-    Debug endpoint for token operations with custom CORS handling
-    Useful for troubleshooting authentication issues
-    """
-    if request.method == 'OPTIONS':
-        response = Response({
-            'detail': 'Preflight request successful',
-            'allowed_methods': ['POST', 'GET', 'OPTIONS']
-        })
-        # Get the origin from request headers
-        origin = request.META.get('HTTP_ORIGIN', '')
-        
-        # Check if the origin is allowed
-        from django.conf import settings
-        if origin and (origin in settings.CORS_ALLOWED_ORIGINS or settings.CORS_ALLOW_ALL_ORIGINS):
-            response["Access-Control-Allow-Origin"] = origin
-        elif origin and 'localhost' in origin:
-            response["Access-Control-Allow-Origin"] = origin
-        else:
-            # For production or if specific origin not found
-            response["Access-Control-Allow-Origin"] = origin
-            
-        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-        response["Access-Control-Allow-Credentials"] = "true"
-        return response
-        
-    if request.method == 'GET':
-        response = JsonResponse({
-            'message': 'This is the token debug endpoint. Send a POST request with username and password to test token generation.',
-            'endpoints': {
-                'token': '/api/token/',
-                'token_refresh': '/api/token/refresh/',
-                'token_verify': '/api/token/verify/',
-                'debug': '/api/debug-token/'
-            }
-        })
-        
-        # Add CORS headers for GET requests
-        origin = request.META.get('HTTP_ORIGIN', '')
-        if origin:
-            response["Access-Control-Allow-Origin"] = origin
-            response["Access-Control-Allow-Credentials"] = "true"
-            
-        return response
-    
-    try:
-        # Get request data
-        if request.content_type == 'application/json':
-            data = json.loads(request.body)
-        else:
-            data = request.POST
-            
-        username = data.get('username')
-        password = data.get('password')
-        
-        if not username or not password:
-            response = JsonResponse({
-                'error': 'Missing credentials',
-                'message': 'Please provide both username and password',
-                'received_data': data
-            }, status=400)
-            
-            # Add CORS headers
-            origin = request.META.get('HTTP_ORIGIN', '')
-            if origin:
-                response["Access-Control-Allow-Origin"] = origin
-                response["Access-Control-Allow-Credentials"] = "true"
-                
-            return response
-            
-        # Try to authenticate
-        from django.contrib.auth import authenticate
-        user = authenticate(username=username, password=password)
-        
-        if user is not None:
-            # User authenticated, now generate token manually
-            from rest_framework_simplejwt.tokens import RefreshToken
-            refresh = RefreshToken.for_user(user)
-            
-            response = JsonResponse({
-                'success': True,
-                'message': 'Authentication successful',
-                'user': username,
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            })
-            
-            # Add CORS headers
-            origin = request.META.get('HTTP_ORIGIN', '')
-            if origin:
-                response["Access-Control-Allow-Origin"] = origin
-                response["Access-Control-Allow-Credentials"] = "true"
-                
-            return response
-        else:
-            # Authentication failed
-            response = JsonResponse({
-                'error': 'Authentication failed',
-                'message': 'Invalid username or password',
-                'username': username
-            }, status=401)
-            
-            # Add CORS headers
-            origin = request.META.get('HTTP_ORIGIN', '')
-            if origin:
-                response["Access-Control-Allow-Origin"] = origin
-                response["Access-Control-Allow-Credentials"] = "true"
-                
-            return response
-            
-    except Exception as e:
-        import traceback
-        response = JsonResponse({
-            'error': str(e),
-            'traceback': traceback.format_exc(),
-            'request_method': request.method,
-            'content_type': request.content_type,
-            'headers': dict(request.headers)
-        }, status=500)
-        
-        # Add CORS headers
-        origin = request.META.get('HTTP_ORIGIN', '')
-        if origin:
-            response["Access-Control-Allow-Origin"] = origin
-            response["Access-Control-Allow-Credentials"] = "true"
-            
-        return response
 
 # Add a global middleware to handle OPTIONS requests
 class OptionsMiddleware:

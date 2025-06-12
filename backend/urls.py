@@ -27,12 +27,6 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 import traceback
 import logging
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-    TokenVerifyView,
-)
-from blog.views import CustomTokenObtainPairView, debug_token
 from health.views import health_check
 
 # Set up logging
@@ -182,12 +176,6 @@ urlpatterns = [
     
     # Include blog URLs with API prefix
     path('api/', include('blog.urls')),
-    
-    # JWT Authentication endpoints
-    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-    path('api/debug-token/', debug_token, name='debug_token'),
     
     # CKEditor URLs
     path("ckeditor5/", include('django_ckeditor_5.urls')),
