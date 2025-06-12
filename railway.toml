@@ -1,12 +1,12 @@
 [deploy]
 startCommand = "bash simplified.sh"
-healthcheckPath = "/"
+healthcheckPath = "/health/"
 healthcheckTimeout = 120
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 
 [deploy.healthcheck]
-path = "/"
+path = "/health/"
 interval = 30
 timeout = 15
 retries = 3
@@ -14,5 +14,5 @@ grace_period = 180
 
 [deploy.envs]
 PYTHONUNBUFFERED = "1"
-DEBUG = "True"
+DEBUG = "False"
 PORT = "8080"

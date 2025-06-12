@@ -25,9 +25,9 @@ python manage.py migrate --noinput\n\
 echo "Collecting static files..."\n\
 python manage.py collectstatic --noinput\n\
 \n\
-# Start Django on the correct network interface\n\
-echo "Starting Django on 0.0.0.0:$PORT..."\n\
-python manage.py runserver 0.0.0.0:$PORT' > simplified.sh
+# Start with Gunicorn for production\n\
+echo "Starting Gunicorn on 0.0.0.0:$PORT..."\n\
+gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --workers 2' > simplified.sh
 
 # Make the script executable
 RUN chmod +x simplified.sh
@@ -39,5 +39,5 @@ RUN echo "OK" > staticfiles/index.html
 # Expose the port
 EXPOSE 8080
 
-# Start the Django server
+# Start the server
 CMD ["bash", "simplified.sh"] 
