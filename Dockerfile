@@ -26,8 +26,18 @@ with socketserver.TCPServer(("", PORT), HealthHandler) as httpd: \n\
     print(f"Server running at http://0.0.0.0:{PORT}/") \n\
     httpd.serve_forever()' > health_server.py
 
-# Make the script executable
+# Create the simplified.sh script that Railway is trying to run
+RUN echo '#!/bin/bash\n\
+echo "Running simplified.sh script"\n\
+echo "Current directory: $(pwd)"\n\
+echo "Content of directory: $(ls -la)"\n\
+\n\
+# Run our health check server\n\
+python health_server.py' > simplified.sh
+
+# Make the scripts executable
 RUN chmod +x health_server.py
+RUN chmod +x simplified.sh
 
 # Create static directory with health check file
 RUN mkdir -p staticfiles
@@ -37,4 +47,4 @@ RUN echo "OK" > staticfiles/index.html
 EXPOSE 8080
 
 # Start the minimal health check server
-CMD ["python", "health_server.py"] 
+CMD ["bash", "simplified.sh"] 

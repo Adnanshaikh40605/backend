@@ -1,5 +1,13 @@
 #!/bin/bash
-set -x
+# This is the script Railway is trying to run
+
+# Print debug info
+echo "Running simplified.sh script"
+echo "Current directory: $(pwd)"
+echo "Content of directory: $(ls -la)"
+
+# Run our health check server
+python health_server.py
 
 # Set default port
 PORT=${PORT:-8000}
