@@ -1,9 +1,9 @@
 [build]
-builder = "nixpacks"
-buildCommand = "pip install -r requirements.txt"
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "bash startup.sh"
+startCommand = "bash simplified.sh"
 healthcheckPath = "/"
 healthcheckTimeout = 120
 restartPolicyType = "on_failure"
@@ -11,11 +11,11 @@ restartPolicyMaxRetries = 10
 
 [deploy.healthcheck]
 path = "/"
-interval = 30
-timeout = 15
+interval = 5
+timeout = 2
 retries = 3
-grace_period = 180
+grace_period = 10
 
 [deploy.envs]
 PYTHONUNBUFFERED = "1"
-DEBUG = "True" 
+PORT = "8080"
