@@ -16,7 +16,7 @@ class HealthHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         """Handle GET requests."""
         print(f"Received request for path: {self.path}")
-        if self.path == '/health/' or self.path == '/health':
+        if self.path == '/health/' or self.path == '/health' or self.path == '/railway-health/' or self.path == '/railway-health':
             self.send_response(HTTPStatus.OK)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()

@@ -168,6 +168,7 @@ urlpatterns = [
     path('health', health_check, name='health_check_no_slash'),  # without trailing slash
     path('health/', health_check, name='health_check_with_slash'),  # with trailing slash
     path('railway-health/', simple_health_check, name='railway_health_check'),
+    path('railway-health', simple_health_check, name='railway_health_check_no_slash'),
     
     # Admin
     path('admin/', admin.site.urls),

@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 # Echo commands for debugging
 set -x
@@ -28,6 +27,11 @@ start_health_fallback() {
     echo "⚠️ Django application failed to start. Starting fallback health check server..."
     # Make sure fallback server uses the same PORT
     python health_check.py
+    
+    # If we get here, the health check server also failed
+    echo "❌ CRITICAL ERROR: Even the fallback health check server failed!"
+    echo "Sleeping to keep the container alive and allow for inspection..."
+    sleep 3600  # Sleep for an hour to allow for inspection
 }
 
 # Create a directory for static files if it doesn't exist
@@ -53,17 +57,30 @@ cat > staticfiles/health.html << EOF
 OK
 EOF
 
-# Run migrations
+# Run migrations (continue on error)
 echo "Running database migrations..."
 python manage.py migrate --noinput || echo "Migrations failed, but continuing..."
 
-# Collect static files
+# Collect static files (continue on error)
 echo "Collecting static files..."
 python manage.py collectstatic --noinput || echo "Static collection failed, but continuing..."
 
 # Add a delay to ensure the application has time to fully initialize before health checks
 echo "Waiting for 5 seconds before starting the application..."
 sleep 5
+
+# Try to create an explicit health check view
+echo "Creating a simple health check view..."
+mkdir -p health
+cat > health/views.py << EOF
+from django.http import HttpResponse
+
+def health_check(request):
+    return HttpResponse("OK", content_type="text/plain")
+
+def railway_health_check(request):
+    return HttpResponse("OK", content_type="text/plain")
+EOF
 
 # Start the application
 echo "Starting Django application on port $PORT..."

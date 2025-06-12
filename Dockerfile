@@ -21,6 +21,7 @@ COPY . .
 
 # Make sure startup script is executable
 RUN chmod +x startup.sh
+RUN chmod +x health_check.py
 
 # Collect static files
 RUN python manage.py collectstatic --noinput
