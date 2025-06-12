@@ -1,7 +1,3 @@
-[build]
-builder = "dockerfile"
-dockerfilePath = "Dockerfile"
-
 [deploy]
 startCommand = "bash simplified.sh"
 healthcheckPath = "/"
@@ -11,11 +7,12 @@ restartPolicyMaxRetries = 10
 
 [deploy.healthcheck]
 path = "/"
-interval = 5
-timeout = 2
+interval = 30
+timeout = 15
 retries = 3
-grace_period = 10
+grace_period = 180
 
 [deploy.envs]
 PYTHONUNBUFFERED = "1"
+DEBUG = "True"
 PORT = "8080"
