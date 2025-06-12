@@ -41,6 +41,23 @@ mkdir -p staticfiles
 echo "Creating health check files..."
 mkdir -p staticfiles/health
 mkdir -p staticfiles/railway-health
+mkdir -p health/templates/health
+
+# Create health template file if it doesn't exist
+if [ ! -f health/templates/health/ok.html ]; then
+    echo "Creating health template file..."
+    cat > health/templates/health/ok.html << EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Health Check</title>
+</head>
+<body>
+    OK
+</body>
+</html>
+EOF
+fi
 
 # Simple health check file
 cat > staticfiles/health/index.html << EOF

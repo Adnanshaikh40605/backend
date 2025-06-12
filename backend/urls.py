@@ -170,6 +170,10 @@ urlpatterns = [
     path('railway-health/', simple_health_check, name='railway_health_check'),
     path('railway-health', simple_health_check, name='railway_health_check_no_slash'),
     
+    # Additional health check routes directly from the health app
+    path('railway-health-app/', include('health.urls'), name='railway_health_app'),
+    path('health-app/', include('health.urls'), name='health_app'),
+    
     # Admin
     path('admin/', admin.site.urls),
     

@@ -4,17 +4,17 @@ buildCommand = "pip install -r requirements.txt"
 
 [deploy]
 startCommand = "bash startup.sh"
-healthcheckPath = "/railway-health/"
-healthcheckTimeout = 120
+healthcheckPath = "/railway-health-app/railway/"
+healthcheckTimeout = 180
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 
 [deploy.healthcheck]
-path = "/railway-health/"
-interval = 30
-timeout = 15
-retries = 3
-grace_period = 120
+path = "/railway-health-app/railway/"
+interval = 45
+timeout = 30
+retries = 5
+grace_period = 300
 
 [deploy.envs]
 PYTHONUNBUFFERED = "1"
