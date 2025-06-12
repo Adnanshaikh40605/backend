@@ -33,7 +33,7 @@ echo "{\\"status\\": \\"ok\\"}" > staticfiles/health.json\n\
 \n\
 # Start Gunicorn with standard workers (not uvicorn workers)\n\
 echo "Starting Gunicorn on 0.0.0.0:$PORT..."\n\
-PYTHONUNBUFFERED=1 gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --log-level debug' > simplified.sh
+PYTHONUNBUFFERED=1 gunicorn wsgi:application --bind 0.0.0.0:$PORT --workers 2 --log-level debug --timeout 120' > simplified.sh
 
 # Make the script executable
 RUN chmod +x simplified.sh

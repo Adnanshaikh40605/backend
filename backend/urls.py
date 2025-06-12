@@ -34,7 +34,30 @@ logger = logging.getLogger(__name__)
 # Ultra simple health check function
 def health_check(request):
     """Ultra simple health check that returns a 200 OK"""
-    return JsonResponse({"status": "ok"})
+    logger.info(f"Health check called at {timezone.now().isoformat()}")
+    try:
+        return JsonResponse({"status": "ok"})
+    except Exception as e:
+        logger.error(f"Error in health check: {str(e)}")
+        return HttpResponse("OK", content_type="text/plain")
+
+# Debug endpoint
+def debug_endpoint(request):
+    """Debug endpoint that returns all request info"""
+    data = {
+        "path": request.path,
+        "method": request.method,
+        "is_secure": request.is_secure(),
+        "is_ajax": request.headers.get('x-requested-with') == 'XMLHttpRequest',
+        "headers": dict(request.headers),
+        "cookies": dict(request.COOKIES),
+        "get_params": dict(request.GET),
+        "time": timezone.now().isoformat(),
+        "remote_addr": request.META.get('REMOTE_ADDR'),
+        "server_name": request.META.get('SERVER_NAME'),
+        "server_port": request.META.get('SERVER_PORT'),
+    }
+    return JsonResponse(data)
 
 # Function to handle Swagger errors
 def swagger_error_handler(request, exception=None):
@@ -162,8 +185,11 @@ urlpatterns = [
     # Root paths
     path('', welcome, name='welcome'),
     
-    # Health check endpoint - MUST be exact match for Railway
-    path('health', health_check, name='health_check'),
+    # Health check endpoints - multiple options to ensure one works
+    path('health', health_check, name='health_check_no_slash'),
+    path('health/', health_check, name='health_check_with_slash'),
+    path('api/health', health_check, name='api_health_check'),
+    path('debug', debug_endpoint, name='debug_endpoint'),
     
     # Admin
     path('admin/', admin.site.urls),
