@@ -27,15 +27,14 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 import traceback
 import logging
-from health.views import health_check
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Simple direct health check function
-def direct_health_check(request):
+# Ultra simple health check function
+def health_check(request):
     """Ultra simple health check that returns a 200 OK"""
-    return JsonResponse({"status": "healthy", "timestamp": timezone.now().isoformat()})
+    return JsonResponse({"status": "ok"})
 
 # Function to handle Swagger errors
 def swagger_error_handler(request, exception=None):
@@ -163,16 +162,8 @@ urlpatterns = [
     # Root paths
     path('', welcome, name='welcome'),
     
-    # Direct health check endpoint for Railway
-    path('health/', direct_health_check, name='health_check_with_slash'),  # with trailing slash
-    path('health', direct_health_check, name='health_check_no_slash'),  # without trailing slash
-    
-    # Legacy health check endpoints
-    path('railway-health/', simple_health_check, name='railway_health_check'),
-    path('railway-health', simple_health_check, name='railway_health_check_no_slash'),
-    
-    # Health app URLs (nested under health-app)
-    path('health-app/', include('health.urls'), name='health_app'),
+    # Health check endpoint - MUST be exact match for Railway
+    path('health', health_check, name='health_check'),
     
     # Admin
     path('admin/', admin.site.urls),

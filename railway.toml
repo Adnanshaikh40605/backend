@@ -16,3 +16,4 @@ grace_period = 300
 PYTHONUNBUFFERED = "1"
 DEBUG = "True"
 PORT = "8080"
+ALLOWED_HOSTS = "*"
