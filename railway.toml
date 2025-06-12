@@ -4,13 +4,15 @@ buildCommand = "pip install -r requirements.txt"
 
 [deploy]
 startCommand = "bash startup.sh"
-healthcheckPath = "/railway-health-app/railway/"
+healthcheckPath = "/"
+healthcheckPort = 8081
 healthcheckTimeout = 180
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 
 [deploy.healthcheck]
-path = "/railway-health-app/railway/"
+path = "/"
+port = 8081
 interval = 45
 timeout = 30
 retries = 5

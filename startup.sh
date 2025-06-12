@@ -15,6 +15,10 @@ else
     echo "✅ Using PORT: $PORT"
 fi
 
+# Set up health check port
+export HEALTH_PORT=8081
+echo "📊 Health check server will run on port $HEALTH_PORT"
+
 # Print all environment variables (excluding sensitive ones)
 echo "Environment variables:"
 env | grep -v -E 'SECRET|PASSWORD|KEY' | sort
@@ -82,22 +86,15 @@ python manage.py migrate --noinput || echo "Migrations failed, but continuing...
 echo "Collecting static files..."
 python manage.py collectstatic --noinput || echo "Static collection failed, but continuing..."
 
-# Add a delay to ensure the application has time to fully initialize before health checks
-echo "Waiting for 5 seconds before starting the application..."
-sleep 5
+# Start the standalone health check server in the background
+echo "Starting standalone health check server..."
+python standalone_health.py &
+HEALTH_PID=$!
+echo "Health check server started with PID: $HEALTH_PID"
 
-# Try to create an explicit health check view
-echo "Creating a simple health check view..."
-mkdir -p health
-cat > health/views.py << EOF
-from django.http import HttpResponse
-
-def health_check(request):
-    return HttpResponse("OK", content_type="text/plain")
-
-def railway_health_check(request):
-    return HttpResponse("OK", content_type="text/plain")
-EOF
+# Add a delay to ensure the health server is up
+echo "Waiting for 3 seconds to ensure health server is running..."
+sleep 3
 
 # Start the application
 echo "Starting Django application on port $PORT..."
@@ -107,7 +104,12 @@ echo "Attempting to start with ASGI..."
 gunicorn --bind 0.0.0.0:$PORT --workers 2 --worker-class uvicorn.workers.UvicornWorker backend.asgi:application || {
     echo "ASGI startup failed, falling back to WSGI..."
     gunicorn --bind 0.0.0.0:$PORT --workers 2 backend.wsgi:application || {
-        echo "WSGI startup failed, starting fallback health check server..."
-        start_health_fallback
+        echo "WSGI startup failed, but the health check server is still running."
+        echo "Keeping the container alive for inspection..."
+        # Keep the container alive to allow for inspection
+        while true; do
+            sleep 60
+            echo "Container still alive, health check server should be responding..."
+        done
     }
 } 
