@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog CMS API</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2C3E50;
+            border-bottom: 2px solid #3498DB;
+            padding-bottom: 10px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #3498DB;
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            background-color: #2980B9;
+        }
+        .container {
+            margin-top: 30px;
+        }
+        .footer {
+            margin-top: 50px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .status {
+            background-color: #27ae60;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to the Blog CMS API</h1>
+    <div class="card">
+        <p>This is the API server for the Blog CMS application.</p>
+        <p><strong>Status:</strong> <span class="status">Online</span></p>
+        <p>Use the links below to explore the API:</p>
+    </div>
+    
+    <div class="container">
+        <h2>API Documentation</h2>
+        <a href="/api/docs/" class="btn">Swagger UI Documentation</a>
+    </div>
+    
+    <div class="container">
+        <h2>Links</h2>
+        <a href="/admin/" class="btn">Admin Panel</a>
+        <a href="https://dohblog.vercel.app/" class="btn">Frontend Website</a>
+    </div>
+    
+    <div class="container">
+        <h2>API Endpoints</h2>
+        <ul>
+            <li><a href="/api/">/api/</a> - API Root</li>
+            <li><a href="/api/health">/api/health</a> - Health Check</li>
+            <li><a href="/api/posts/">/api/posts/</a> - Blog Posts</li>
+        </ul>
+    </div>
+    
+    <div class="footer">
+        <p>Contact: <a href="mailto:skadnan40605@gmail.com">skadnan40605@gmail.com</a></p>
+        <p>Frontend URL: <a href="https://dohblog.vercel.app/">https://dohblog.vercel.app/</a></p>
+    </div>
+</body>
+</html> 

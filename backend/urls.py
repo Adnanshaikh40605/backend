@@ -31,6 +31,19 @@ import logging
 # Set up logging
 logger = logging.getLogger(__name__)
 
+# Root view for the main entry point
+def root_view(request):
+    """API root that returns system status and links"""
+    data = {
+        "status": "online",
+        "message": "Blog CMS API is running",
+        "version": "1.0.0",
+        "documentation": "/api/docs/",
+        "admin": "/admin/",
+        "timestamp": timezone.now().isoformat()
+    }
+    return JsonResponse(data)
+
 # Ultra simple health check function
 def health_check(request):
     """Ultra simple health check that returns a 200 OK"""
@@ -71,81 +84,7 @@ def swagger_error_handler(request, exception=None):
 
 # Welcome page
 def welcome(request):
-    return HttpResponse("""
-    <html>
-        <head>
-            <title>Blog CMS Backend</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    line-height: 1.6;
-                    max-width: 800px;
-                    margin: 0 auto;
-                    padding: 20px;
-                    color: #333;
-                }
-                h1 {
-                    color: #2C3E50;
-                    border-bottom: 2px solid #3498DB;
-                    padding-bottom: 10px;
-                }
-                .card {
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                    padding: 15px;
-                    margin-bottom: 20px;
-                    background-color: #f9f9f9;
-                }
-                .btn {
-                    display: inline-block;
-                    background-color: #3498DB;
-                    color: white;
-                    padding: 10px 15px;
-                    text-decoration: none;
-                    border-radius: 4px;
-                    margin-right: 10px;
-                    margin-bottom: 10px;
-                }
-                .btn:hover {
-                    background-color: #2980B9;
-                }
-                .container {
-                    margin-top: 30px;
-                }
-                .footer {
-                    margin-top: 50px;
-                    border-top: 1px solid #eee;
-                    padding-top: 20px;
-                    font-size: 0.9em;
-                    color: #666;
-                }
-            </style>
-        </head>
-        <body>
-            <h1>Welcome to the Blog CMS Backend</h1>
-            <div class="card">
-                <p>This is the API server for the Blog CMS application.</p>
-                <p>Use the links below to explore the API:</p>
-            </div>
-            
-            <div class="container">
-                <h2>API Documentation</h2>
-                <a href="/api/docs/" class="btn">Swagger UI Documentation</a>
-            </div>
-            
-            <div class="container">
-                <h2>Links</h2>
-                <a href="/admin/" class="btn">Admin Panel</a>
-                <a href="https://blog-cms-frontend-ten.vercel.app/" class="btn">Frontend Website</a>
-            </div>
-            
-            <div class="footer">
-                <p>Contact: <a href="mailto:skadnan40605@gmail.com">skadnan40605@gmail.com</a></p>
-                <p>Frontend URL: <a href="https://dohblog.vercel.app/">https://dohblog.vercel.app/</a></p>
-            </div>
-        </body>
-    </html>
-    """)
+    return render(request, 'welcome.html')
 
 # Basic Railway health check at root level
 def simple_health_check(request):
@@ -182,8 +121,11 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    # Root paths
-    path('', welcome, name='welcome'),
+    # Root paths - using JSON response for API clients
+    path('', root_view, name='root'),
+    
+    # HTML welcome page at /welcome/ for browser viewing
+    path('welcome/', welcome, name='welcome'),
     
     # Health check endpoints - multiple options to ensure one works
     path('health', health_check, name='health_check_no_slash'),

@@ -34,9 +34,17 @@ def start_django():
     """Start the Django application after a delay"""
     time.sleep(5)  # Give health server time to start
     print("Starting Django application...")
+    
+    # Make sure static directory exists
+    os.system("mkdir -p staticfiles")
+    
+    # Copy favicon.ico to staticfiles to ensure it's accessible
+    if os.path.exists("static/favicon.ico"):
+        print("Copying favicon.ico to staticfiles")
+        os.system("cp static/favicon.ico staticfiles/")
+    
     os.system("python manage.py migrate --noinput")
     os.system("python manage.py collectstatic --noinput")
-    os.system("mkdir -p staticfiles")
     os.system("echo '{\"status\": \"ok\"}' > staticfiles/health.json")
     os.system(f"PYTHONUNBUFFERED=1 gunicorn wsgi:application --bind 0.0.0.0:{os.environ.get('PORT', 8000)} --workers 2 --log-level debug --timeout 120")
 
