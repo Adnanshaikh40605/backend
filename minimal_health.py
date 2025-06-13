@@ -115,6 +115,8 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
         self.handle_request()
     
     def handle_request(self):
+        global django_ready
+        
         # Special case for health check
         if self.path == "/health.json":
             self.send_response(200)
@@ -208,7 +210,6 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
             
             # If we get here and django wasn't ready, it might be ready now
             if not django_ready and response.status_code < 500:
-                global django_ready
                 django_ready = True
                 print(f"Django is now ready (detected during request to {self.path})")
             
