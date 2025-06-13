@@ -4,6 +4,7 @@ import re
 from dotenv import load_dotenv
 import dj_database_url
 from datetime import timedelta
+import mimetypes
 
 # Load environment variables
 load_dotenv()
@@ -139,10 +140,13 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 # Whitenoise configuration
-WHITENOISE_ROOT = os.path.join(BASE_DIR, 'static')
+WHITENOISE_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Use CompressedStaticFilesStorage for better performance
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+
+# Add mimetypes for favicon
+mimetypes.add_type("image/x-icon", ".ico")
 
 # Media files
 MEDIA_URL = '/media/'

@@ -46,7 +46,7 @@ def start_django():
     os.system("python manage.py migrate --noinput")
     os.system("python manage.py collectstatic --noinput")
     os.system("echo '{\"status\": \"ok\"}' > staticfiles/health.json")
-    os.system(f"PYTHONUNBUFFERED=1 gunicorn wsgi:application --bind 0.0.0.0:{os.environ.get('PORT', 8000)} --workers 2 --log-level debug --timeout 120")
+    os.system(f"PYTHONUNBUFFERED=1 gunicorn backend.wsgi:application --bind 0.0.0.0:{os.environ.get('PORT', 8000)} --workers 2 --log-level debug --timeout 120")
 
 if __name__ == "__main__":
     # Get port from environment or use default

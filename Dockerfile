@@ -2,6 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=backend.settings
+
 # Copy requirements and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
