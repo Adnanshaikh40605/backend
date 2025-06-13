@@ -1,128 +1,186 @@
 #!/usr/bin/env python
 """
-Ultra minimal health check server with proxy capabilities
+Health check server with robust reverse proxy to Django
 """
-import os
-import sys
-import threading
-import time
 import http.server
 import socketserver
-import urllib.request
-import urllib.error
-import socket
+import os
+import subprocess
+import threading
+import time
+import json
+import requests
+from urllib.parse import urlparse
 
-# Create health check directory and file
-os.makedirs('/tmp/health', exist_ok=True)
-with open('/tmp/health/health.json', 'w') as f:
+# Configuration
+DJANGO_PORT = os.environ.get("DJANGO_PORT", "8000")
+PORT = int(os.environ.get("PORT", "8080"))
+DJANGO_URL = f"http://localhost:{DJANGO_PORT}"
+
+# Create health check file
+with open('/tmp/health.json', 'w') as f:
     f.write('{"status":"ok"}')
 
-# Flag to track if Django is ready
+# Track if Django is running
 django_ready = False
-django_port = int(os.environ.get('DJANGO_PORT', 8000))
 
-# Define a handler that serves health checks and proxies other requests to Django
-class ProxyHandler(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        # Serve health checks directly
-        if self.path == '/health.json':
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(b'{"status":"ok"}')
-            return
-            
-        # Try to proxy to Django if it's ready
-        global django_ready
-        if django_ready:
-            try:
-                # Try to forward the request to Django
-                url = f"http://localhost:{django_port}{self.path}"
-                req = urllib.request.Request(url, headers=dict(self.headers))
-                with urllib.request.urlopen(req, timeout=5) as response:
-                    # Copy response status and headers
-                    self.send_response(response.status)
-                    for header, value in response.getheaders():
-                        self.send_header(header, value)
-                    self.end_headers()
-                    # Copy response body
-                    self.wfile.write(response.read())
-                return
-            except (urllib.error.URLError, socket.timeout) as e:
-                print(f"Error proxying to Django: {e}")
-                # Fall through to 502 response
-        
-        # Django is not ready or proxy failed, return 502
-        self.send_response(502)
-        self.send_header('Content-Type', 'application/json')
-        self.end_headers()
-        self.wfile.write(b'{"error":"Application starting, please try again in a moment"}')
-    
-    # Handle all HTTP methods the same way
-    do_POST = do_GET
-    do_PUT = do_GET
-    do_DELETE = do_GET
-    do_OPTIONS = do_GET
-    
-    def log_message(self, format, *args):
-        """Only log errors to avoid cluttering the output"""
-        if args[1][0] in ('4', '5'):  # Log 4xx and 5xx responses
-            print(f"[Health Server] {self.address_string()} - {format % args}")
-
+# Start Django in the background
 def start_django():
-    """Start Django after a delay"""
     global django_ready
     
-    time.sleep(5)
-    print("Starting Django application...")
-    os.system("python manage.py migrate --noinput")
-    os.system("python manage.py collectstatic --noinput")
+    print(f"Setting up Django environment...")
     
-    # Use DJANGO_PORT for Django, separate from the health check server
-    print(f"Starting Django on port {django_port}")
+    # Run migrations and collect static files
+    subprocess.run(["python", "manage.py", "migrate", "--noinput"], check=False)
+    subprocess.run(["python", "manage.py", "collectstatic", "--noinput"], check=False)
     
-    # We need to use subprocess to keep track of when Django is ready
-    import subprocess
-    django_process = subprocess.Popen(
-        f"gunicorn backend.wsgi:application --bind 0.0.0.0:{django_port} --workers 2 --log-level debug --timeout 120",
-        shell=True
-    )
+    print(f"Starting Django on port {DJANGO_PORT}...")
     
-    # Wait for Django to become ready by checking the port
-    retry_count = 0
-    while retry_count < 30:  # Try for about 30 seconds
+    # Start Gunicorn with the Django application
+    process = subprocess.Popen([
+        "gunicorn",
+        "backend.wsgi:application",
+        "--bind", f"0.0.0.0:{DJANGO_PORT}",
+        "--workers", "2",
+        "--timeout", "120"
+    ])
+    
+    # Wait for Django to become available
+    for i in range(30):  # Try for 30 seconds
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(1)
-                result = s.connect_ex(('localhost', django_port))
-                if result == 0:
-                    print(f"Django is now ready on port {django_port}")
-                    django_ready = True
-                    break
-        except:
+            response = requests.get(f"{DJANGO_URL}/admin/login/", timeout=1)
+            if response.status_code < 500:
+                django_ready = True
+                print(f"Django is now running on port {DJANGO_PORT}")
+                break
+        except requests.RequestException:
             pass
-        retry_count += 1
         time.sleep(1)
     
     if not django_ready:
         print("WARNING: Django did not become ready in time")
     
-    # Keep the Django process running
-    django_process.wait()
+    # Keep Django running
+    process.wait()
 
-if __name__ == '__main__':
-    # Get port from environment or use default 
-    health_port = int(os.environ.get('PORT', 8080))
+# Health check + Reverse Proxy handler
+class ProxyHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.handle_request()
     
-    print(f"Starting health/proxy server on port {health_port}")
-    print(f"Django will run on port {django_port}")
+    def do_POST(self):
+        self.handle_request()
+    
+    def do_PUT(self):
+        self.handle_request()
+    
+    def do_DELETE(self):
+        self.handle_request()
+    
+    def do_OPTIONS(self):
+        self.handle_request()
+    
+    def handle_request(self):
+        # Special case for health check
+        if self.path == "/health.json":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "ok"}).encode())
+            return
+        
+        # Special case for favicon.ico - serve directly if exists
+        if self.path == "/favicon.ico" and os.path.exists("static/favicon.ico"):
+            with open("static/favicon.ico", "rb") as f:
+                self.send_response(200)
+                self.send_header("Content-Type", "image/x-icon")
+                self.end_headers()
+                self.wfile.write(f.read())
+            return
+        
+        # If Django is not ready, return a friendly message
+        global django_ready
+        if not django_ready:
+            self.send_response(503)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Retry-After", "10")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "status": "starting",
+                "message": "Application is starting, please try again in a moment"
+            }).encode())
+            return
+        
+        # Forward request to Django
+        try:
+            # Get request body if present
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length) if content_length > 0 else None
+            
+            # Prepare headers for the proxied request
+            headers = {}
+            for key, value in self.headers.items():
+                if key.lower() not in ('host', 'content-length'):
+                    headers[key] = value
+            
+            # Preserve original URL path and query string
+            url_parts = urlparse(self.path)
+            target_url = f"{DJANGO_URL}{url_parts.path}"
+            if url_parts.query:
+                target_url += f"?{url_parts.query}"
+            
+            # Forward the request to Django
+            response = requests.request(
+                method=self.command,
+                url=target_url,
+                headers=headers,
+                data=body,
+                timeout=30,
+                allow_redirects=False  # We'll handle redirects ourselves
+            )
+            
+            # Forward Django's response back to the client
+            self.send_response(response.status_code)
+            
+            # Forward headers from Django, but skip some problematic ones
+            skip_headers = ('transfer-encoding', 'connection', 'keep-alive')
+            for key, value in response.headers.items():
+                if key.lower() not in skip_headers:
+                    self.send_header(key, value)
+            
+            self.end_headers()
+            
+            # Forward response body
+            self.wfile.write(response.content)
+            
+        except Exception as e:
+            # If anything goes wrong with the proxy, return a 502 Bad Gateway
+            self.send_response(502)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "status": "error",
+                "message": f"Proxy error: {str(e)}"
+            }).encode())
+    
+    def log_message(self, format, *args):
+        if self.path != "/health.json":  # Don't log health checks
+            print(f"{self.address_string()} - {format % args}")
+
+if __name__ == "__main__":
+    print(f"Starting health/proxy server on port {PORT}")
     
     # Start Django in a separate thread
     django_thread = threading.Thread(target=start_django)
     django_thread.daemon = True
     django_thread.start()
     
-    # Run the health/proxy server
-    with socketserver.TCPServer(("", health_port), ProxyHandler) as httpd:
-        print(f"Health/proxy server running on port {health_port}")
-        httpd.serve_forever() 
+    # Create and start the proxy server
+    httpd = socketserver.ThreadingTCPServer(("", PORT), ProxyHandler)
+    print(f"Proxy server running at http://0.0.0.0:{PORT}/")
+    
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("Shutting down server")
+        httpd.shutdown() 
