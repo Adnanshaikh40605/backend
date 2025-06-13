@@ -42,8 +42,12 @@ RUN chmod +x simplified.sh
 RUN mkdir -p staticfiles
 RUN echo '{"status": "ok"}' > staticfiles/health.json
 
+# Make the railway startup script executable
+COPY railway_startup.sh .
+RUN chmod +x railway_startup.sh
+
 # Expose the port
 EXPOSE 8080
 
 # Start the server
-CMD ["bash", "simplified.sh"] 
+CMD ["./railway_startup.sh"] 
