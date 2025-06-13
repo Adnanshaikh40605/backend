@@ -27,6 +27,8 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 import traceback
 import logging
+from django.views.generic import RedirectView
+from django.contrib.staticfiles.storage import staticfiles_storage
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -126,6 +128,9 @@ urlpatterns = [
     
     # HTML welcome page at /welcome/ for browser viewing
     path('welcome/', welcome, name='welcome'),
+    
+    # Favicon - serve directly from static files
+    path('favicon.ico', RedirectView.as_view(url=staticfiles_storage.url('favicon.ico'))),
     
     # Health check endpoints - multiple options to ensure one works
     path('health', health_check, name='health_check_no_slash'),

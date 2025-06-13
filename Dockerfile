@@ -23,5 +23,8 @@ RUN chmod +x *.py *.sh
 # Expose the port
 EXPOSE 8080
 
-# Start the health check server which will then start Django
-CMD ["python", "simple_health.py"] 
+# Make the startup script executable
+RUN chmod +x start_django.sh
+
+# Start Django with our custom startup script
+CMD ["./start_django.sh"] 

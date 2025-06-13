@@ -16,10 +16,10 @@ DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 # Dynamically set allowed hosts from env
 allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1")
-ALLOWED_HOSTS = allowed_hosts_env.split(",")
+ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(",") if host.strip()]
 
-# Add wildcard to allow all hosts
-if '*' not in ALLOWED_HOSTS:
+# Add wildcard for safety during development
+if DEBUG and '*' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('*')
 
 # Always allow Railway domains - explicitly add these regardless of what's in the env var
