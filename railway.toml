@@ -1,0 +1,13 @@
+[build]
+builder = "nixpacks"
+buildCommand = "python -m pip install -r requirements.txt && python manage.py collectstatic --noinput"
+
+[deploy]
+startCommand = "gunicorn backend.wsgi:application"
+healthcheckPath = "/"
+healthcheckTimeout = 100
+restartPolicyType = "on-failure"
+
+[env]
+PORT = "8000"
+PYTHONUNBUFFERED = "1" 
