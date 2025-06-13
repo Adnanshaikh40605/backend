@@ -6,7 +6,9 @@
   "scripts": {
     "start": "gunicorn backend.wsgi:application",
     "dev": "python manage.py runserver",
-    "build": "python manage.py collectstatic --noinput"
+    "build": "python manage.py collectstatic --noinput",
+    "migrate": "python manage.py migrate",
+    "postinstall": "pip install -r requirements.txt"
   },
   "engines": {
     "node": "18.x"
