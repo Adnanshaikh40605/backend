@@ -21,7 +21,7 @@ DJANGO_URL = f"http://localhost:{DJANGO_PORT}"
 with open('/tmp/health.json', 'w') as f:
     f.write('{"status":"ok"}')
 
-# Track if Django is running
+# Global variable to track if Django is running
 django_ready = False
 
 # Start Django in the background
@@ -149,7 +149,6 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
             return
         
         # If Django is not ready, return a friendly message
-        global django_ready
         if not django_ready:
             self.send_response(503)
             self.send_header("Content-Type", "application/json")
