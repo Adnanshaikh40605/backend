@@ -24,10 +24,11 @@ with open('/tmp/health.json', 'w') as f:
 
 # Global variable to track if Django is running
 django_ready = False
+django_starting = True
 
 # Start Django in the background
 def start_django():
-    global django_ready
+    global django_ready, django_starting
     
     print(f"Setting up Django environment...")
     
@@ -59,7 +60,7 @@ def start_django():
     ], env=dict(os.environ, PORT=DJANGO_PORT))
     
     # Wait for Django to become available
-    for i in range(60):  # Try for 60 seconds instead of 30
+    for i in range(120):  # Try for 2 minutes now
         try:
             # Try different paths that might be more reliable
             for path in ['/admin/login/', '/health', '/', '/static/health.json']:
@@ -67,6 +68,7 @@ def start_django():
                     response = requests.get(f"{DJANGO_URL}{path}", timeout=2)
                     if response.status_code < 500:
                         django_ready = True
+                        django_starting = False
                         print(f"Django is now running on port {DJANGO_PORT} (confirmed with {path})")
                         break
                 except requests.RequestException:
@@ -74,14 +76,23 @@ def start_django():
             
             if django_ready:
                 break
+                
+            # Sleep less at the beginning to detect fast starts
+            if i < 10:
+                time.sleep(0.5)
+            else:
+                time.sleep(1)
+                
         except Exception as e:
             print(f"Error checking Django readiness: {e}")
         
-        print(f"Waiting for Django to start... ({i+1}/60)")
-        time.sleep(1)
+        print(f"Waiting for Django to start... ({i+1}/120)")
+    
+    django_starting = False
     
     if not django_ready:
         print("WARNING: Django did not become ready in time")
+        print("The proxy will still try to forward requests to Django")
     
     # Keep Django running
     process.wait()
@@ -122,7 +133,7 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
             return
             
         # Special case for root path - always return something useful
-        if self.path == "/" and not django_ready:
+        if self.path == "/" and django_starting:
             self.send_response(200)
             self.send_header("Content-Type", "text/html")
             self.end_headers()
@@ -137,12 +148,26 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
                     h1 {{ color: #2C3E50; }}
                     .card {{ border: 1px solid #ddd; border-radius: 4px; padding: 15px; background-color: #f9f9f9; }}
                     .status {{ color: #e67e22; font-weight: bold; }}
+                    .loader {{ 
+                        border: 5px solid #f3f3f3;
+                        border-top: 5px solid #3498db;
+                        border-radius: 50%;
+                        width: 30px;
+                        height: 30px;
+                        animation: spin 2s linear infinite;
+                        margin: 20px auto;
+                    }}
+                    @keyframes spin {{
+                        0% {{ transform: rotate(0deg); }}
+                        100% {{ transform: rotate(360deg); }}
+                    }}
                 </style>
             </head>
             <body>
                 <h1>Blog CMS API</h1>
                 <div class="card">
                     <p><span class="status">Starting up...</span> The application is initializing.</p>
+                    <div class="loader"></div>
                     <p>This page will refresh automatically every 5 seconds.</p>
                     <p>The Django application is currently starting. Please wait a moment.</p>
                 </div>
@@ -152,19 +177,8 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(status_html.encode())
             return
         
-        # If Django is not ready, return a friendly message
-        if not django_ready:
-            self.send_response(503)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Retry-After", "10")
-            self.end_headers()
-            self.wfile.write(json.dumps({
-                "status": "starting",
-                "message": "Application is starting, please try again in a moment"
-            }).encode())
-            return
-        
-        # Forward request to Django
+        # Try forwarding to Django even if not officially ready - it might work for some endpoints
+        # This helps with startup when Django is partially ready
         try:
             # Get request body if present
             content_length = int(self.headers.get('Content-Length', 0))
@@ -192,6 +206,12 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
                 allow_redirects=False  # We'll handle redirects ourselves
             )
             
+            # If we get here and django wasn't ready, it might be ready now
+            if not django_ready and response.status_code < 500:
+                global django_ready
+                django_ready = True
+                print(f"Django is now ready (detected during request to {self.path})")
+            
             # Forward Django's response back to the client
             self.send_response(response.status_code)
             
@@ -211,9 +231,16 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
             self.send_response(502)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
+            
+            # Different message based on django state
+            if django_starting:
+                message = "Application is still starting up. Please try again in a moment."
+            else:
+                message = f"Proxy error: {str(e)}"
+                
             self.wfile.write(json.dumps({
                 "status": "error",
-                "message": f"Proxy error: {str(e)}"
+                "message": message
             }).encode())
     
     def log_message(self, format, *args):
