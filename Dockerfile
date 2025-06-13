@@ -20,4 +20,4 @@ RUN chmod +x *.py *.sh
 EXPOSE 8080
 
 # Start the health check server which will then start Django
-CMD ["python", "railway_health.py"] 
+CMD ["python", "simple_health.py"] 
