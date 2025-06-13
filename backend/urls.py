@@ -138,6 +138,9 @@ urlpatterns = [
     # Include blog URLs with API prefix
     path('api/', include('blog.urls')),
     
+    # Include authentication URLs with API prefix
+    path('api/auth/', include('authentication.urls')),
+    
     # CKEditor URLs
     path("ckeditor5/", include('django_ckeditor_5.urls')),
     
