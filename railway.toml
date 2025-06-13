@@ -1,5 +1,5 @@
 [deploy]
-startCommand = "bash simplified.sh"
+startCommand = "python railway_health.py"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "on_failure"
