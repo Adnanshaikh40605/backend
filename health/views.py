@@ -24,7 +24,7 @@ def railway_health(request):
     """
     try:
         logger.info(f"Railway health check received at {timezone.now().isoformat()}")
-        return HttpResponse("OK", status=200, content_type="text/plain")
+        return JsonResponse({"status": "ok"}, status=200)
     except Exception as e:
         logger.error(f"Railway health check error: {str(e)}")
         return HttpResponse("OK", status=200, content_type="text/plain")

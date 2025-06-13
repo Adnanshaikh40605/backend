@@ -2,10 +2,12 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile"
+    "dockerfilePath": "Dockerfile",
+    "buildCommand": "chmod +x start_django.sh"
   },
   "deploy": {
     "numReplicas": 1,
+    "startCommand": "./start_django.sh",
     "healthcheck": {
       "path": "/health",
       "interval": 10,

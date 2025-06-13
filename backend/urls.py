@@ -56,6 +56,12 @@ def health_check(request):
         logger.error(f"Error in health check: {str(e)}")
         return HttpResponse("OK", content_type="text/plain")
 
+# Specific health check for Railway
+def railway_health_check(request):
+    """Dedicated health check for Railway"""
+    logger.info(f"Railway health check called at {timezone.now().isoformat()}")
+    return JsonResponse({"status": "ok"})
+
 # Debug endpoint
 def debug_endpoint(request):
     """Debug endpoint that returns all request info"""
@@ -133,8 +139,10 @@ urlpatterns = [
     path('favicon.ico', RedirectView.as_view(url=staticfiles_storage.url('favicon.ico'))),
     
     # Health check endpoints - multiple options to ensure one works
-    path('health', health_check, name='health_check_no_slash'),
-    path('health/', health_check, name='health_check_with_slash'),
+    path('health', railway_health_check, name='railway_health_check'),
+    path('health/', railway_health_check, name='railway_health_check_slash'),
+    path('health/check', health_check, name='health_check_no_slash'),
+    path('health/check/', health_check, name='health_check_with_slash'),
     path('api/health', health_check, name='api_health_check'),
     path('debug', debug_endpoint, name='debug_endpoint'),
     
