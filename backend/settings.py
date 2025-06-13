@@ -151,6 +151,8 @@ if not cors_origins or cors_origins == [""]:
         "http://localhost:3000",
         "http://localhost:5173",
         "https://backend-production-92ae.up.railway.app",
+        "https://blog-cms-frontend-ten.vercel.app",
+        "https://dohblog.vercel.app"
     ]
 CORS_ALLOWED_ORIGINS = cors_origins
 
@@ -161,6 +163,8 @@ if not csrf_trusted_origins or csrf_trusted_origins == [""]:
         "http://localhost:3000",
         "http://localhost:5173",
         "https://backend-production-92ae.up.railway.app",
+        "https://blog-cms-frontend-ten.vercel.app",
+        "https://dohblog.vercel.app"
     ]
 CSRF_TRUSTED_ORIGINS = csrf_trusted_origins
 

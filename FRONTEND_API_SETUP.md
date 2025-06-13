@@ -6,27 +6,48 @@ This guide explains how to connect your frontend application to the Django API b
 
 The base URL for all API endpoints is:
 
+For local development:
 http://localhost:8000
+
+For production:
+https://backend-production-92ae.up.railway.app
 
 ## API Endpoints
 
+Local development:
 - Blog Posts: `http://localhost:8000/api/posts/`
 - Comments: `http://localhost:8000/api/comments/`
 - Images: `http://localhost:8000/api/images/`
+
+Production:
+- Blog Posts: `https://backend-production-92ae.up.railway.app/api/posts/`
+- Comments: `https://backend-production-92ae.up.railway.app/api/comments/`
+- Images: `https://backend-production-92ae.up.railway.app/api/images/`
 
 ## Media Files
 
 Media files (images) are served from:
 
+Local development:
 http://localhost:8000/media/
+
+Production:
+https://backend-production-92ae.up.railway.app/media/
 
 ## Environment Variables
 
 For your frontend application, you should set these environment variables:
 
+For local development:
 ```
 VITE_API_URL=http://localhost:8000
 VITE_MEDIA_URL=http://localhost:8000/media/
+```
+
+For production:
+```
+VITE_API_URL=https://backend-production-92ae.up.railway.app
+VITE_MEDIA_URL=https://backend-production-92ae.up.railway.app/media/
 ```
 
 ## React/Vite Frontend Setup
