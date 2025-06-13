@@ -57,6 +57,19 @@
             border-radius: 4px;
             display: inline-block;
         }
+        .url-info {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        code {
+            background-color: #f1f1f1;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -67,6 +80,10 @@
         <p>Use the links below to explore the API:</p>
     </div>
     
+    <div class="url-info">
+        <p><strong>Backend URL:</strong> <code>{{ BACKEND_URL }}</code></p>
+    </div>
+    
     <div class="container">
         <h2>API Documentation</h2>
         <a href="/api/docs/" class="btn">Swagger UI Documentation</a>
@@ -75,21 +92,22 @@
     <div class="container">
         <h2>Links</h2>
         <a href="/admin/" class="btn">Admin Panel</a>
-        <a href="https://dohblog.vercel.app/" class="btn">Frontend Website</a>
+        <a href="/health/" class="btn">Health Check</a>
     </div>
     
     <div class="container">
         <h2>API Endpoints</h2>
         <ul>
             <li><a href="/api/">/api/</a> - API Root</li>
-            <li><a href="/api/health">/api/health</a> - Health Check</li>
+            <li><a href="/health/">/health/</a> - Health Check</li>
             <li><a href="/api/posts/">/api/posts/</a> - Blog Posts</li>
+            <li><a href="/api/comments/">/api/comments/</a> - Comments</li>
         </ul>
     </div>
     
     <div class="footer">
-        <p>Contact: <a href="mailto:skadnan40605@gmail.com">skadnan40605@gmail.com</a></p>
-        <p>Frontend URL: <a href="https://dohblog.vercel.app/">https://dohblog.vercel.app/</a></p>
+        <p>Backend URL: <code>{{ BACKEND_URL }}</code></p>
+        <p>© 2024 Blog CMS API</p>
     </div>
 </body>
 </html> 

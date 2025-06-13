@@ -42,9 +42,18 @@ def root_view(request):
         "version": "1.0.0",
         "documentation": "/api/docs/",
         "admin": "/admin/",
-        "timestamp": timezone.now().isoformat()
+        "timestamp": timezone.now().isoformat(),
+        "backend_url": settings.BACKEND_URL
     }
     return JsonResponse(data)
+
+# Health check endpoint
+def health_check(request):
+    """Simple health check endpoint for monitoring"""
+    return JsonResponse({
+        "status": "healthy",
+        "timestamp": timezone.now().isoformat()
+    })
 
 # Debug endpoint
 def debug_endpoint(request):
@@ -110,6 +119,9 @@ schema_view = get_schema_view(
 urlpatterns = [
     # Root paths - using JSON response for API clients
     path('', root_view, name='root'),
+    
+    # Health check endpoint
+    path('health/', health_check, name='health_check'),
     
     # HTML welcome page at /welcome/ for browser viewing
     path('welcome/', welcome, name='welcome'),

@@ -4,6 +4,7 @@ import re
 from dotenv import load_dotenv
 from datetime import timedelta
 import mimetypes
+from .database import get_database_config
 
 # Load environment variables
 load_dotenv()
@@ -14,7 +15,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'a!x(mhy4kdh(r(*%)tw5cb5n%y4u%l*gtwuc-
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 # Dynamically set allowed hosts from env
-allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1")
+allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend-production-92ae.up.railway.app")
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(",") if host.strip()]
 
 # Add wildcard for safety during development
@@ -55,6 +56,9 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'backend.urls'
 
+# Define the backend URL for use in templates and views
+BACKEND_URL = os.environ.get('BACKEND_URL', 'https://backend-production-92ae.up.railway.app')
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -66,6 +70,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # Add custom context processor to make BACKEND_URL available in templates
+                'backend.context_processors.backend_url',
             ],
         },
     },
@@ -73,12 +79,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-# Database - Using SQLite by default
+# Database configuration
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': get_database_config()
 }
 
 # Password validation
@@ -147,6 +150,7 @@ if not cors_origins or cors_origins == [""]:
     cors_origins = [
         "http://localhost:3000",
         "http://localhost:5173",
+        "https://backend-production-92ae.up.railway.app",
     ]
 CORS_ALLOWED_ORIGINS = cors_origins
 
@@ -156,6 +160,7 @@ if not csrf_trusted_origins or csrf_trusted_origins == [""]:
     csrf_trusted_origins = [
         "http://localhost:3000",
         "http://localhost:5173",
+        "https://backend-production-92ae.up.railway.app",
     ]
 CSRF_TRUSTED_ORIGINS = csrf_trusted_origins
 
