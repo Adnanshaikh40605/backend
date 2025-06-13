@@ -1,12 +1,12 @@
 {
   "DEBUG": "False",
-  "SECRET_KEY": "your-secret-key-should-be-changed-in-production",
+  "SECRET_KEY": "rpsp6hme2+g^wsh@h2fzn)1*9bo$sz!_-)kxzf6@5th&i8a1@w",
   "ALLOWED_HOSTS": "backend-production-92ae.up.railway.app,localhost,127.0.0.1",
   "BACKEND_URL": "https://backend-production-92ae.up.railway.app",
   "CORS_ALLOW_ALL_ORIGINS": "True",
   "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:5173,https://backend-production-92ae.up.railway.app",
   "CSRF_TRUSTED_ORIGINS": "http://localhost:3000,http://localhost:5173,https://backend-production-92ae.up.railway.app",
-  "DATABASE_URL": "sqlite:///db.sqlite3",
+  "DATABASE_URL": "postgresql://postgres:tjivRKybjCRWGgWiVAxNpASgEmhzASyi@postgres.railway.internal:5432/railway",
   "PORT": "8000",
   "PYTHONUNBUFFERED": "1",
   "DJANGO_LOG_LEVEL": "INFO"
