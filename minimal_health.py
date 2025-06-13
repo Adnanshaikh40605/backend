@@ -30,6 +30,14 @@ def start_django():
     
     print(f"Setting up Django environment...")
     
+    # First check if Django can connect to the database
+    try:
+        # Run migrations and collect static files
+        subprocess.run(["python", "manage.py", "check", "--database", "default"], check=False)
+        print("Database connection check completed")
+    except Exception as e:
+        print(f"Warning: Database check failed: {e}")
+    
     # Run migrations and collect static files
     subprocess.run(["python", "manage.py", "migrate", "--noinput"], check=False)
     subprocess.run(["python", "manage.py", "collectstatic", "--noinput"], check=False)
@@ -42,19 +50,30 @@ def start_django():
         "backend.wsgi:application",
         "--bind", f"0.0.0.0:{DJANGO_PORT}",
         "--workers", "2",
-        "--timeout", "120"
+        "--timeout", "120",
+        "--preload"  # Preload the application to speed up worker startup
     ])
     
     # Wait for Django to become available
-    for i in range(30):  # Try for 30 seconds
+    for i in range(60):  # Try for 60 seconds instead of 30
         try:
-            response = requests.get(f"{DJANGO_URL}/admin/login/", timeout=1)
-            if response.status_code < 500:
-                django_ready = True
-                print(f"Django is now running on port {DJANGO_PORT}")
+            # Try different paths that might be more reliable
+            for path in ['/admin/login/', '/health', '/', '/static/health.json']:
+                try:
+                    response = requests.get(f"{DJANGO_URL}{path}", timeout=2)
+                    if response.status_code < 500:
+                        django_ready = True
+                        print(f"Django is now running on port {DJANGO_PORT} (confirmed with {path})")
+                        break
+                except requests.RequestException:
+                    continue
+            
+            if django_ready:
                 break
-        except requests.RequestException:
-            pass
+        except Exception as e:
+            print(f"Error checking Django readiness: {e}")
+        
+        print(f"Waiting for Django to start... ({i+1}/60)")
         time.sleep(1)
     
     if not django_ready:
@@ -96,6 +115,37 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "image/x-icon")
                 self.end_headers()
                 self.wfile.write(f.read())
+            return
+            
+        # Special case for root path - always return something useful
+        if self.path == "/" and not django_ready:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.end_headers()
+            status_html = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Blog CMS API</title>
+                <meta http-equiv="refresh" content="5">
+                <style>
+                    body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }}
+                    h1 {{ color: #2C3E50; }}
+                    .card {{ border: 1px solid #ddd; border-radius: 4px; padding: 15px; background-color: #f9f9f9; }}
+                    .status {{ color: #e67e22; font-weight: bold; }}
+                </style>
+            </head>
+            <body>
+                <h1>Blog CMS API</h1>
+                <div class="card">
+                    <p><span class="status">Starting up...</span> The application is initializing.</p>
+                    <p>This page will refresh automatically every 5 seconds.</p>
+                    <p>The Django application is currently starting. Please wait a moment.</p>
+                </div>
+            </body>
+            </html>
+            """
+            self.wfile.write(status_html.encode())
             return
         
         # If Django is not ready, return a friendly message
