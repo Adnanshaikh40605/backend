@@ -17,14 +17,15 @@ COPY . .
 RUN mkdir -p staticfiles
 RUN echo '{"status": "ok"}' > staticfiles/health.json
 
-# Make the scripts executable
+# Create health directories for the minimal server
+RUN mkdir -p /tmp/health
+RUN echo '{"status":"ok"}' > /tmp/health/health.json
+
+# Make all scripts executable
 RUN chmod +x *.py *.sh
 
 # Expose the port
 EXPOSE 8080
 
-# Make the startup script executable
-RUN chmod +x start_django.sh
-
-# Start Django with our custom startup script
-CMD ["./start_django.sh"] 
+# Start the minimal health server that will also start Django
+CMD ["python", "minimal_health.py"] 

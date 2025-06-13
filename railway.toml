@@ -1,21 +1,22 @@
 [deploy]
-startCommand = "./start_django.sh"
-healthcheckPath = "/health"
-healthcheckTimeout = 120
+startCommand = "python minimal_health.py"
+healthcheckPath = "/health.json"
+healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 
 [deploy.healthcheck]
-path = "/health"
-interval = 30
-timeout = 20
+path = "/health.json"
+interval = 10
+timeout = 5
 retries = 5
-grace_period = 300
+grace_period = 10
 
 [deploy.envs]
 PYTHONUNBUFFERED = "1"
 DEBUG = "True"
 PORT = "8080"
+DJANGO_PORT = "8000"
 ALLOWED_HOSTS = "backend-production-49ec.up.railway.app,localhost,127.0.0.1"
 DJANGO_SETTINGS_MODULE = "backend.settings"
 STATIC_ROOT = "/app/staticfiles"
