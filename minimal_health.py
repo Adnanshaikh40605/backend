@@ -13,7 +13,8 @@ import requests
 from urllib.parse import urlparse
 
 # Configuration
-DJANGO_PORT = os.environ.get("DJANGO_PORT", "8000")
+# Force Django to use a different port than the main proxy
+DJANGO_PORT = "8000"  # Force Django to use port 8000
 PORT = int(os.environ.get("PORT", "8080"))
 DJANGO_URL = f"http://localhost:{DJANGO_PORT}"
 
@@ -30,6 +31,9 @@ def start_django():
     
     print(f"Setting up Django environment...")
     
+    # Ensure Django port environment variable is set
+    os.environ["DJANGO_PORT"] = DJANGO_PORT
+    
     # First check if Django can connect to the database
     try:
         # Run migrations and collect static files
@@ -44,7 +48,7 @@ def start_django():
     
     print(f"Starting Django on port {DJANGO_PORT}...")
     
-    # Start Gunicorn with the Django application
+    # Start Gunicorn with the Django application, forcing it to use DJANGO_PORT
     process = subprocess.Popen([
         "gunicorn",
         "backend.wsgi:application",
@@ -52,7 +56,7 @@ def start_django():
         "--workers", "2",
         "--timeout", "120",
         "--preload"  # Preload the application to speed up worker startup
-    ])
+    ], env=dict(os.environ, PORT=DJANGO_PORT))
     
     # Wait for Django to become available
     for i in range(60):  # Try for 60 seconds instead of 30
@@ -218,6 +222,7 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     print(f"Starting health/proxy server on port {PORT}")
+    print(f"Django will run on port {DJANGO_PORT}")
     
     # Start Django in a separate thread
     django_thread = threading.Thread(target=start_django)
