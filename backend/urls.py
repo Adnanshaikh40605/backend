@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.views.static import serve
 from django.shortcuts import render
 from django.utils import timezone
@@ -45,22 +45,6 @@ def root_view(request):
         "timestamp": timezone.now().isoformat()
     }
     return JsonResponse(data)
-
-# Ultra simple health check function
-def health_check(request):
-    """Ultra simple health check that returns a 200 OK"""
-    logger.info(f"Health check called at {timezone.now().isoformat()}")
-    try:
-        return JsonResponse({"status": "ok"})
-    except Exception as e:
-        logger.error(f"Error in health check: {str(e)}")
-        return HttpResponse("OK", content_type="text/plain")
-
-# Specific health check for Railway
-def railway_health_check(request):
-    """Dedicated health check for Railway"""
-    logger.info(f"Railway health check called at {timezone.now().isoformat()}")
-    return JsonResponse({"status": "ok"})
 
 # Debug endpoint
 def debug_endpoint(request):
@@ -93,11 +77,6 @@ def swagger_error_handler(request, exception=None):
 # Welcome page
 def welcome(request):
     return render(request, 'welcome.html')
-
-# Basic Railway health check at root level
-def simple_health_check(request):
-    """Simplest possible health check for Railway"""
-    return HttpResponse("OK", content_type="text/plain")
 
 # Wrap schema view with error handling
 def schema_view_with_error_handling(request, format=None):
@@ -138,12 +117,7 @@ urlpatterns = [
     # Favicon - serve directly from static files
     path('favicon.ico', RedirectView.as_view(url=staticfiles_storage.url('favicon.ico'))),
     
-    # Health check endpoints - multiple options to ensure one works
-    path('health', railway_health_check, name='railway_health_check'),
-    path('health/', railway_health_check, name='railway_health_check_slash'),
-    path('health/check', health_check, name='health_check_no_slash'),
-    path('health/check/', health_check, name='health_check_with_slash'),
-    path('api/health', health_check, name='api_health_check'),
+    # Debug endpoint
     path('debug', debug_endpoint, name='debug_endpoint'),
     
     # Admin
@@ -151,9 +125,6 @@ urlpatterns = [
     
     # Include blog URLs with API prefix
     path('api/', include('blog.urls')),
-    
-    # Include health check URLs
-    path('health/', include('health.urls')),
     
     # CKEditor URLs
     path("ckeditor5/", include('django_ckeditor_5.urls')),

@@ -2,7 +2,6 @@ from pathlib import Path
 import os
 import re
 from dotenv import load_dotenv
-import dj_database_url
 from datetime import timedelta
 import mimetypes
 
@@ -12,7 +11,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'a!x(mhy4kdh(r(*%)tw5cb5n%y4u%l*gtwuc-j=b&!kdohs-u5')
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 # Dynamically set allowed hosts from env
 allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1")
@@ -21,19 +20,6 @@ ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(",") if host.s
 # Add wildcard for safety during development
 if DEBUG and '*' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('*')
-
-# Always allow Railway domains - explicitly add these regardless of what's in the env var
-railway_domains = [
-    ".railway.app",
-    "*.railway.app",
-    "*.up.railway.app",
-    "*-production-*.up.railway.app",
-    "backend-production-49ec.up.railway.app"
-]
-
-for domain in railway_domains:
-    if domain not in ALLOWED_HOSTS:
-        ALLOWED_HOSTS.append(domain)
 
 # Application definition
 INSTALLED_APPS = [
@@ -53,7 +39,6 @@ INSTALLED_APPS = [
 
     # Local apps
     'blog',
-    'health',
 ]
 
 MIDDLEWARE = [
@@ -88,44 +73,28 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-# Database
-DATABASE_URL = os.environ.get(
-    'DATABASE_URL', 
-    None  # Default to None so we can fall back to SQLite
-)
-
-def mask_password(url):
-    if not url:
-        return "No database URL provided"
-    try:
-        return re.sub(r'(://[^:]+:)([^@]+)(@)', r'\1*****\3', url)
-    except Exception:
-        return "Invalid database URL format"
-
-if DATABASE_URL:
-    print(f"Using DATABASE_URL from environment: {mask_password(DATABASE_URL)}")
-    DATABASES = {
-        'default': dj_database_url.parse(
-            DATABASE_URL, 
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
+# Database - Using SQLite by default
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    print("WARNING: No DATABASE_URL found. Using SQLite for local development only. Add a DATABASE_URL to your environment.")
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
 ]
 
 # Internationalization
@@ -168,7 +137,7 @@ REST_FRAMEWORK = {
 }
 
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'
 CORS_ALLOW_CREDENTIALS = True  # Allow credentials
 
 # Get CORS allowed origins from environment or use a default list
@@ -176,9 +145,8 @@ cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
 # If env variable is empty, add some sensible defaults
 if not cors_origins or cors_origins == [""]:
     cors_origins = [
-        "https://backend-production-49ec.up.railway.app",
         "http://localhost:3000",
-        "https://dohblog.vercel.app"
+        "http://localhost:5173",
     ]
 CORS_ALLOWED_ORIGINS = cors_origins
 
@@ -186,9 +154,8 @@ CORS_ALLOWED_ORIGINS = cors_origins
 csrf_trusted_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
 if not csrf_trusted_origins or csrf_trusted_origins == [""]:
     csrf_trusted_origins = [
-        "https://backend-production-49ec.up.railway.app",
         "http://localhost:3000",
-        "https://dohblog.vercel.app"
+        "http://localhost:5173",
     ]
 CSRF_TRUSTED_ORIGINS = csrf_trusted_origins
 
@@ -287,21 +254,6 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
-        'health': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'asgi': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'wsgi': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
     },
 }
 
@@ -315,6 +267,3 @@ MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')
 # Add additional CORS settings
 CORS_URLS_REGEX = r'^/api/.*$'
 CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours in seconds
-
-# Make sure your Django application is listening on the PORT environment variable provided by Railway
-# The application should bind to 0.0.0.0 or :: (for IPv6) and use the PORT environment variable

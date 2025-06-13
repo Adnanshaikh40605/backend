@@ -1,18 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
-from django.http import JsonResponse
-from django.utils import timezone
 
 # Create a router for ViewSets
 router = DefaultRouter()
 router.register(r'posts', views.BlogPostViewSet)
 router.register(r'images', views.BlogImageViewSet)
 router.register(r'comments', views.CommentViewSet)
-
-def health_check(request):
-    """Health check endpoint for Railway"""
-    return JsonResponse({'status': 'ok', 'time': timezone.now().isoformat()})
 
 urlpatterns = [
     # Include router URLs
@@ -24,7 +18,4 @@ urlpatterns = [
     # Comment actions
     path('comments/counts/', views.comment_counts, name='comment-counts'),
     path('comments/<str:action>/<int:comment_id>/', views.comment_action, name='comment-action'),
-    
-    # Health check endpoint
-    path('health/', health_check, name='health_check'),
 ]
