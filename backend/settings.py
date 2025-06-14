@@ -15,7 +15,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'a!x(mhy4kdh(r(*%)tw5cb5n%y4u%l*gtwuc-
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 # Dynamically set allowed hosts from env
-allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend-production-92ae.up.railway.app")
+allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend-production-92ae.up.railway.app,blog-website-sigma-one.vercel.app,dohblog.vercel.app")
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(",") if host.strip()]
 
 # Add wildcard for safety during development
@@ -188,7 +188,8 @@ if not cors_origins or cors_origins == [""]:
         "http://localhost:5173",
         "https://backend-production-92ae.up.railway.app",
         "https://blog-cms-frontend-ten.vercel.app",
-        "https://dohblog.vercel.app"
+        "https://dohblog.vercel.app",
+        "https://blog-website-sigma-one.vercel.app"
     ]
 CORS_ALLOWED_ORIGINS = cors_origins
 
@@ -200,7 +201,8 @@ if not csrf_trusted_origins or csrf_trusted_origins == [""]:
         "http://localhost:5173",
         "https://backend-production-92ae.up.railway.app",
         "https://blog-cms-frontend-ten.vercel.app",
-        "https://dohblog.vercel.app"
+        "https://dohblog.vercel.app",
+        "https://blog-website-sigma-one.vercel.app"
     ]
 CSRF_TRUSTED_ORIGINS = csrf_trusted_origins
 
