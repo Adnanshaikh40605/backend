@@ -18,4 +18,7 @@ urlpatterns = [
     # Comment actions
     path('comments/counts/', views.comment_counts, name='comment-counts'),
     path('comments/<str:action>/<int:comment_id>/', views.comment_action, name='comment-action'),
+    
+    # Custom endpoint for retrieving posts by slug
+    path('posts/by-slug/<slug:slug>/', views.get_post_by_slug, name='post-by-slug'),
 ]

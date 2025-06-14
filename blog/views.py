@@ -1685,3 +1685,37 @@ class OptionsMiddleware:
 from django.conf import settings
 if 'blog.views.OptionsMiddleware' not in str(settings.MIDDLEWARE):
     settings.MIDDLEWARE.insert(0, 'blog.views.OptionsMiddleware')
+
+@swagger_auto_schema(
+    method='get',
+    tags=['Posts'],
+    operation_description="Get a blog post by its slug using the /posts/by-slug/{slug}/ format",
+    responses={
+        200: BlogPostSerializer(),
+        404: "Post not found"
+    }
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_post_by_slug(request, slug):
+    """
+    Retrieve a blog post by its slug using the /posts/by-slug/{slug}/ format.
+    This provides compatibility with clients expecting this URL format.
+    """
+    try:
+        # Find the post by slug
+        post = get_object_or_404(BlogPost, slug=slug)
+        
+        # Optimize with prefetch_related for related data
+        if hasattr(post, 'images'):
+            post.prefetch_related('images')
+        
+        # Use the same serializer as the viewset
+        serializer = BlogPostSerializer(post, context={'request': request})
+        return Response(serializer.data)
+    except Exception as e:
+        logger.error(f"Error retrieving post by slug '{slug}': {str(e)}")
+        return Response(
+            {"detail": f"Error retrieving post: {str(e)}"},
+            status=status.HTTP_404_NOT_FOUND
+        )
