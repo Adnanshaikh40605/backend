@@ -55,7 +55,7 @@ Thumbs.db
 
 # Frontend - exclude entire frontend directory
 frontend/
-Blog website/
+Blog-Website/
 
 # IDE
 .idea/
