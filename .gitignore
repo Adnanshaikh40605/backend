@@ -27,7 +27,11 @@ var/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-media/
+# Media files but keep directory structure
+media/*
+!media/*/
+media/*/*
+!media/*/.gitkeep
 staticfiles/
 
 # Environment variables

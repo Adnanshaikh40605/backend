@@ -112,3 +112,44 @@ A health check endpoint is available at `/health/` to verify the server is runni
 ## Backend URL
 
 The backend is deployed at: https://backend-production-92ae.up.railway.app/
+
+## Frontend API Integration
+
+### API Base URL
+
+For local development: `http://localhost:8000`
+For production: `https://backend-production-92ae.up.railway.app`
+
+### Available Endpoints
+
+- Blog Posts: `/api/posts/`
+- Blog Post by Slug: `/api/posts/{slug}/`
+- Comments: `/api/comments/`
+- Images: `/api/images/`
+- Authentication: `/api/auth/token/`
+
+### Common Issues and Solutions
+
+#### 404 Errors for Blog Posts
+
+If your frontend is receiving 404 errors when trying to access blog posts by slug, ensure:
+
+1. The URL format is correct: `/api/posts/{slug}/` (not `/api/posts/by-slug/{slug}/`)
+2. The slug exists in the database
+3. CORS is properly configured in the Django backend
+
+#### CORS Issues
+
+If you're experiencing CORS errors:
+
+1. Check that your frontend domain is included in `CORS_ALLOWED_ORIGINS` in the backend settings
+2. Ensure `CORS_ALLOW_CREDENTIALS` is set to `True` if you're using authentication
+3. For local development, you may set `CORS_ALLOW_ALL_ORIGINS=True`
+
+#### Media Files
+
+Media files (like images) are stored in the `/media/` directory. The full URL would be:
+- Local: `http://localhost:8000/media/path/to/image.jpg`
+- Production: `https://backend-production-92ae.up.railway.app/media/path/to/image.jpg`
+
+Note: In production, media files are stored in ephemeral storage. For persistent storage, configure cloud storage like AWS S3.
