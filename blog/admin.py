@@ -52,12 +52,12 @@ class BlogPostAdmin(admin.ModelAdmin):
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ('author_info', 'content_preview', 'post_link', 'status_column', 'created_at')
-    list_filter = ('approved', 'is_trash', 'created_at')
+    list_display = ('author_info', 'content_preview', 'post_link', 'status_column', 'reply_status', 'created_at')
+    list_filter = ('approved', 'is_trash', 'created_at', ('parent', admin.EmptyFieldListFilter))
     search_fields = ('content', 'author_name', 'author_email', 'post__title')
     actions = ['approve_comments', 'unapprove_comments', 'trash_comments', 'restore_comments', 'delete_permanently']
     date_hierarchy = 'created_at'
-    readonly_fields = ['ip_address', 'user_agent', 'created_at', 'updated_at']
+    readonly_fields = ['ip_address', 'user_agent', 'created_at', 'updated_at', 'reply_count', 'parent_comment']
     
     class Media:
         js = ('js/admin/comment_actions.js',)
@@ -75,11 +75,54 @@ class CommentAdmin(admin.ModelAdmin):
         ('Related Post', {
             'fields': ('post',),
         }),
+        ('Reply Information', {
+            'fields': ('parent', 'parent_comment', 'reply_count'),
+            'classes': ('collapse',),
+        }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',),
         }),
     )
+    
+    def parent_comment(self, obj):
+        """Display parent comment content if this is a reply"""
+        if obj.parent:
+            parent_content = obj.parent.content[:100] + '...' if len(obj.parent.content) > 100 else obj.parent.content
+            return format_html(
+                '<strong>Replying to:</strong> {} <br><em>{}</em><br><a href="{}">View parent comment</a>',
+                obj.parent.author_name or 'Anonymous',
+                parent_content,
+                f'/admin/blog/comment/{obj.parent.id}/change/'
+            )
+        return "Not a reply"
+    parent_comment.short_description = 'Parent Comment'
+    
+    def reply_count(self, obj):
+        """Display count of replies to this comment"""
+        count = obj.replies.count()
+        if count > 0:
+            return format_html(
+                '{} {} - <a href="{}">View replies</a>',
+                count,
+                'reply' if count == 1 else 'replies',
+                f'/admin/blog/comment/?parent={obj.id}'
+            )
+        return "No replies"
+    reply_count.short_description = 'Replies'
+    
+    def reply_status(self, obj):
+        """Display whether this comment is a reply or has replies"""
+        if obj.parent:
+            return format_html('<span style="color: blue;">Reply</span>')
+        
+        reply_count = obj.replies.count()
+        if reply_count > 0:
+            return format_html('<span style="color: purple;">{} {}</span>', 
+                              reply_count, 'Reply' if reply_count == 1 else 'Replies')
+        
+        return format_html('<span style="color: gray;">No replies</span>')
+    reply_status.short_description = 'Replies'
     
     def author_info(self, obj):
         if obj.author_name:
@@ -121,6 +164,15 @@ class CommentAdmin(admin.ModelAdmin):
     def content_preview(self, obj):
         content = obj.content[:100] + '...' if len(obj.content) > 100 else obj.content
         
+        # Add parent comment info if this is a reply
+        if obj.parent:
+            parent_info = format_html(
+                '<div style="margin-bottom: 5px; font-style: italic; color: #666;">↪ Reply to: {}</div>',
+                obj.parent.author_name or 'Anonymous'
+            )
+        else:
+            parent_info = ''
+        
         # Add row actions
         actions = []
         
@@ -138,10 +190,13 @@ class CommentAdmin(admin.ModelAdmin):
                 
             actions.append(f'<a href="#" onclick="return trashComment({obj.id});" style="color: red;">Trash</a>')
             
+            # Add reply action
+            actions.append(f'<a href="/admin/blog/comment/add/?parent={obj.id}" style="color: blue;">Reply</a>')
+            
         action_html = ' | '.join(actions)
         
-        return format_html('{}<br><div class="row-actions" style="margin-top: 6px; color: #999;">{}</div>',
-                          content, action_html)
+        return format_html('{}{}<br><div class="row-actions" style="margin-top: 6px; color: #999;">{}</div>',
+                          parent_info, content, action_html)
     content_preview.short_description = 'Comment'
     content_preview.admin_order_field = 'content'
 
@@ -172,7 +227,7 @@ class CommentAdmin(admin.ModelAdmin):
     delete_permanently.short_description = "Delete selected comments permanently"
     
     def get_queryset(self, request):
-        queryset = super().get_queryset(request).select_related('post')
+        queryset = super().get_queryset(request).select_related('post', 'parent')
         
         # Apply filters based on URL parameters
         is_trash = request.GET.get('is_trash')
@@ -186,26 +241,13 @@ class CommentAdmin(admin.ModelAdmin):
             return queryset.filter(approved=True)
         elif approved == '0':
             return queryset.filter(approved=False)
+        
+        # Filter by parent comment if requested
+        parent = request.GET.get('parent')
+        if parent:
+            return queryset.filter(parent_id=parent)
             
         return queryset
-    
-    def get_actions(self, request):
-        actions = super().get_actions(request)
-        if request.GET.get('is_trash', '0') == '1':
-            # If viewing trash, show restore and delete permanently options, but hide approve/unapprove/trash
-            if 'approve_comments' in actions:
-                del actions['approve_comments']
-            if 'unapprove_comments' in actions:
-                del actions['unapprove_comments']
-            if 'trash_comments' in actions:
-                del actions['trash_comments']
-        else:
-            # If not viewing trash, hide restore and delete permanently options
-            if 'restore_comments' in actions:
-                del actions['restore_comments']
-            if 'delete_permanently' in actions:
-                del actions['delete_permanently']
-        return actions
 
 @admin.register(BlogImage)
 class BlogImageAdmin(admin.ModelAdmin):

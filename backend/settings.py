@@ -190,6 +190,8 @@ if not cors_origins or cors_origins == [""]:
         "https://dohblog.vercel.app",
         "https://blog-website-sigma-one.vercel.app"
     ]
+# Clean up any URLs with trailing slashes
+cors_origins = [origin.rstrip('/') for origin in cors_origins if origin.strip()]
 CORS_ALLOWED_ORIGINS = cors_origins
 
 # CSRF Trusted Origins

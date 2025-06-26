@@ -49,13 +49,31 @@ class CommentSerializer(serializers.ModelSerializer):
         help_text="Post title information including id, title, and slug",
         read_only=True
     )
+    replies = serializers.SerializerMethodField(read_only=True)
+    reply_count = serializers.SerializerMethodField(read_only=True)
+    level = serializers.IntegerField(read_only=True)
+    has_more_replies = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Comment
-        fields = ['id', 'post', 'post_title', 'author_name', 'author_email', 
+        fields = ['id', 'post', 'post_title', 'parent', 'author_name', 'author_email', 
                  'author_website', 'content', 'approved', 'is_trash',
-                 'created_at', 'admin_reply']
-        read_only_fields = ['is_trash']
+                 'created_at', 'admin_reply', 'replies', 'reply_count', 
+                 'level', 'path', 'has_more_replies']
+        read_only_fields = ['is_trash', 'level', 'path']
+    
+    def validate_post(self, value):
+        """Ensure the post exists"""
+        try:
+            # If a string ID is passed, convert it to an integer
+            if isinstance(value, str) and value.isdigit():
+                post_id = int(value)
+                return BlogPost.objects.get(id=post_id)
+            return value
+        except BlogPost.DoesNotExist:
+            raise serializers.ValidationError("The specified blog post does not exist.")
+        except (ValueError, TypeError) as e:
+            raise serializers.ValidationError(f"Invalid post ID format: {str(e)}")
     
     def get_post_title(self, obj):
         if obj.post is None:
@@ -69,6 +87,47 @@ class CommentSerializer(serializers.ModelSerializer):
             'title': obj.post.title,
             'slug': obj.post.slug
         }
+    
+    def get_replies(self, obj):
+        """Get approved replies to this comment with proper recursion control"""
+        # Control recursion depth with context
+        max_depth = self.context.get('max_depth', 3)
+        current_depth = self.context.get('current_depth', 0)
+        
+        # If we've reached max depth or no_replies flag is set, return empty list
+        if current_depth >= max_depth or self.context.get('no_replies', False):
+            return []
+            
+        # Create new context with increased depth
+        nested_context = self.context.copy()
+        nested_context['current_depth'] = current_depth + 1
+        
+        # Get approved replies and serialize them
+        replies = obj.replies.filter(approved=True, is_trash=False).order_by('created_at')
+        
+        # Apply pagination if needed
+        limit = self.context.get('replies_limit', 5)
+        if limit and replies.count() > limit:
+            replies = replies[:limit]
+        
+        serializer = CommentSerializer(replies, many=True, context=nested_context)
+        return serializer.data
+    
+    def get_reply_count(self, obj):
+        """Get count of approved replies"""
+        return obj.replies.filter(approved=True, is_trash=False).count()
+    
+    def get_has_more_replies(self, obj):
+        """Check if there are more replies than what was returned"""
+        # If we're not including replies, this is irrelevant
+        if self.context.get('no_replies', False):
+            return False
+            
+        limit = self.context.get('replies_limit', 5)
+        if not limit:
+            return False
+            
+        return obj.replies.filter(approved=True, is_trash=False).count() > limit
 
 class BlogPostListSerializer(serializers.ModelSerializer):
     featured_image_url = serializers.SerializerMethodField()
@@ -109,9 +168,18 @@ class BlogPostSerializer(serializers.ModelSerializer):
         return None
     
     def get_comments(self, obj):
-        # Get only approved comments
-        approved_comments = obj.comments.filter(approved=True)
-        return CommentSerializer(approved_comments, many=True).data
+        # Get only approved root comments (no parent)
+        approved_comments = obj.comments.filter(approved=True, parent__isnull=True)
+        
+        # Set up context for nested serialization
+        context = self.context.copy()
+        context.update({
+            'max_depth': 3,  # Show up to 3 levels of nested comments
+            'current_depth': 0,
+            'replies_limit': 5  # Limit to 5 replies per comment
+        })
+        
+        return CommentSerializer(approved_comments, many=True, context=context).data
     
     def create(self, validated_data):
         # Extract additional images if present

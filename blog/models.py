@@ -135,6 +135,7 @@ class BlogImage(models.Model):
 
 class Comment(models.Model):
     post = models.ForeignKey(BlogPost, on_delete=models.CASCADE, related_name='comments', db_index=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies', db_index=True)
     author_name = models.CharField(max_length=100, blank=True, null=True)
     author_email = models.EmailField(blank=True, null=True)
     author_website = models.URLField(blank=True, null=True)
@@ -146,13 +147,67 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     admin_reply = models.TextField(null=True, blank=True)
+    # New fields for nested comments
+    level = models.IntegerField(default=0, db_index=True)
+    path = models.CharField(max_length=255, blank=True, db_index=True)
 
     def __str__(self):
         return f"Comment by {self.author_name} on {self.post.title}"
+    
+    @property
+    def is_reply(self):
+        """Check if this comment is a reply to another comment"""
+        return self.parent is not None
+        
+    def get_replies(self):
+        """Get all approved replies to this comment"""
+        return self.replies.filter(approved=True, is_trash=False)
+        
+    def get_replies_count(self):
+        """Get count of approved replies"""
+        return self.replies.filter(approved=True, is_trash=False).count()
+    
+    def save(self, *args, **kwargs):
+        # Calculate the level based on parent
+        if self.parent:
+            self.level = self.parent.level + 1
+            
+            # Generate path for efficient querying
+            if self.parent.path:
+                if self.id:
+                    self.path = f"{self.parent.path}/{self.id}"
+                # For new comments (no ID yet), we'll update path after save
+            else:
+                if self.id:
+                    self.path = f"{self.parent.id}/{self.id}"
+                # For new comments (no ID yet), we'll update path after save
+        else:
+            self.level = 0
+            if self.id:
+                self.path = str(self.id)
+            # For new comments (no ID yet), we'll update path after save
+        
+        # Call the "real" save method
+        super().save(*args, **kwargs)
+        
+        # Update path after save to include this comment's ID if needed
+        if not self.path and self.id:
+            if self.parent and self.parent.path:
+                self.path = f"{self.parent.path}/{self.id}"
+            elif self.parent:
+                self.path = f"{self.parent.id}/{self.id}"
+            else:
+                self.path = str(self.id)
+            # Update only the path field to avoid recursion
+            Comment.objects.filter(id=self.id).update(path=self.path)
 
     class Meta:
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['post', 'approved']),
             models.Index(fields=['is_trash']),
+            models.Index(fields=['parent']),
+            models.Index(fields=['approved', 'parent']),
+            models.Index(fields=['level']),
+            models.Index(fields=['path']),
         ] 
