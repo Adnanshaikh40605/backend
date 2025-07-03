@@ -89,4 +89,4 @@ python manage.py generate_swagger --file=my-api-docs --url=https://api.example.c
 The following commands have been removed and replaced by the `fix_slugs` command:
 
 - ~~`fix_null_slugs`~~: Use `fix_slugs --mode=null` instead
-- ~~`populate_slugs`~~: Use `fix_slugs --mode=empty` instead
+- ~~`populate_slugs`~~: Use `fix_slugs --mode=empty` instead 
