@@ -16,9 +16,9 @@ def populate_comment_fields(apps, schema_editor):
         "UPDATE blog_comment SET level = 0"
     )
     
-    # Set path for comments using their ID
+    # Set path for comments using their ID (SQLite compatible)
     schema_editor.execute(
-        "UPDATE blog_comment SET path = id::text"
+        "UPDATE blog_comment SET path = CAST(id AS TEXT)"
     )
 
 
