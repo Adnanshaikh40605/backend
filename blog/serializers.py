@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import BlogPost, BlogImage, Comment
+from .models import BlogPost, BlogImage, Comment, Category
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
@@ -28,6 +28,23 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         validated_data.pop('password2')
         user = User.objects.create_user(**validated_data)
         return user
+
+class CategorySerializer(serializers.ModelSerializer):
+    """Serializer for Category model"""
+    post_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug', 'description', 'color', 'post_count', 'created_at', 'updated_at']
+        read_only_fields = ['slug', 'created_at', 'updated_at']
+    
+    def get_post_count(self, obj):
+        """Get the post count from annotation or calculate it"""
+        # If the queryset has annotation, use it
+        if hasattr(obj, 'post_count'):
+            return obj.post_count
+        # Otherwise calculate it
+        return obj.get_post_count()
 
 class BlogImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
@@ -132,11 +149,12 @@ class CommentSerializer(serializers.ModelSerializer):
 class BlogPostListSerializer(serializers.ModelSerializer):
     featured_image_url = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
+    category = CategorySerializer(read_only=True)
     
     class Meta:
         model = BlogPost
         fields = ['id', 'title', 'slug', 'featured_image', 'featured_image_url', 
-                 'published', 'position', 'created_at', 'comment_count']
+                 'category', 'published', 'position', 'created_at', 'comment_count']
     
     def get_featured_image_url(self, obj):
         if obj.featured_image:
@@ -153,11 +171,12 @@ class BlogPostSerializer(serializers.ModelSerializer):
     images = BlogImageSerializer(many=True, read_only=True)
     comments = serializers.SerializerMethodField()
     featured_image_url = serializers.SerializerMethodField()
+    category = CategorySerializer(read_only=True)
     
     class Meta:
         model = BlogPost
         fields = ['id', 'title', 'slug', 'content', 'featured_image', 'featured_image_url', 'images', 'comments',
-                 'published', 'featured', 'position', 'created_at', 'updated_at']
+                 'category', 'published', 'featured', 'position', 'created_at', 'updated_at']
     
     def get_featured_image_url(self, obj):
         if obj.featured_image:

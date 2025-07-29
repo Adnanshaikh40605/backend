@@ -4,13 +4,16 @@ from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 import logging
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+import re
+from django.utils.html import strip_tags
 
 from .models import BlogPost, BlogImage, Comment
 from .serializers import BlogPostSerializer, BlogPostListSerializer, BlogImageSerializer
+from .pagination import BlogPostPagination
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -41,6 +44,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     serializer_class = BlogPostSerializer
     lookup_field = 'slug'  # Use slug instead of pk for all operations
     permission_classes = [AllowAny]
+    pagination_class = BlogPostPagination
     
     def get_serializer_class(self):
         if self.action == 'list':
@@ -58,12 +62,17 @@ class BlogPostViewSet(viewsets.ModelViewSet):
                 elif published.lower() == 'false':
                     queryset = queryset.filter(published=False)
             
-            # Filter by slug if provided
+            # Universal search functionality
+            search_query = self.request.query_params.get('search')
+            if search_query:
+                queryset = self._apply_search_filter(queryset, search_query)
+            
+            # Filter by slug if provided (legacy support)
             slug_search = self.request.query_params.get('slug')
             if slug_search:
                 queryset = queryset.filter(slug__icontains=slug_search)
             
-            # Filter by title if provided
+            # Filter by title if provided (legacy support)
             title_search = self.request.query_params.get('title')
             if title_search:
                 queryset = queryset.filter(title__icontains=title_search)
@@ -84,6 +93,78 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             queryset = queryset.prefetch_related('images')
             
         return queryset
+    
+    def _apply_search_filter(self, queryset, search_query):
+        """
+        Apply universal search filter across title, content, and slug.
+        Supports multiple search terms and provides relevance-based ordering.
+        """
+        if not search_query or not search_query.strip():
+            return queryset
+        
+        # Clean and prepare search terms
+        search_terms = self._prepare_search_terms(search_query)
+        
+        if not search_terms:
+            return queryset
+        
+        # Build search query using Q objects
+        search_filter = Q()
+        
+        for term in search_terms:
+            # Create a filter for each term that searches across multiple fields
+            term_filter = (
+                Q(title__icontains=term) |
+                Q(slug__icontains=term) |
+                Q(content__icontains=term)
+            )
+            
+            # Combine with AND logic (all terms must be found somewhere)
+            if search_filter:
+                search_filter &= term_filter
+            else:
+                search_filter = term_filter
+        
+        # Apply the search filter
+        queryset = queryset.filter(search_filter)
+        
+        # Simple relevance ordering: title matches first, then by creation date
+        # We'll use a simpler approach without raw SQL to avoid parameter issues
+        title_matches = queryset.filter(title__icontains=search_terms[0])
+        other_matches = queryset.exclude(title__icontains=search_terms[0])
+        
+        # Combine with title matches first, then other matches
+        from django.db.models import Case, When, IntegerField
+        
+        queryset = queryset.annotate(
+            title_priority=Case(
+                When(title__icontains=search_terms[0], then=1),
+                default=0,
+                output_field=IntegerField()
+            )
+        ).order_by('-title_priority', '-created_at')
+        
+        return queryset
+    
+    def _prepare_search_terms(self, search_query):
+        """
+        Clean and prepare search terms from the search query.
+        Removes HTML tags, splits on whitespace, and filters out short terms.
+        """
+        # Remove HTML tags if present
+        clean_query = strip_tags(search_query)
+        
+        # Split into terms and clean them
+        terms = []
+        for term in clean_query.split():
+            # Remove special characters and keep only alphanumeric and common punctuation
+            clean_term = re.sub(r'[^\w\s-]', '', term).strip()
+            
+            # Only include terms that are at least 2 characters long
+            if len(clean_term) >= 2:
+                terms.append(clean_term)
+        
+        return terms[:10]  # Limit to 10 search terms for performance
 
     @swagger_auto_schema(
         operation_description="Create a new blog post with optional image uploads",
@@ -297,8 +378,15 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             )
 
     @swagger_auto_schema(
-        operation_description="List all blog posts",
+        operation_description="List all blog posts with pagination and search support",
         manual_parameters=[
+            openapi.Parameter(
+                name='search',
+                in_=openapi.IN_QUERY,
+                description='Universal search across title, content, and slug. Supports multiple terms.',
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
             openapi.Parameter(
                 name='published',
                 in_=openapi.IN_QUERY,
@@ -309,20 +397,51 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             openapi.Parameter(
                 name='slug',
                 in_=openapi.IN_QUERY,
-                description='Filter by slug (partial match)',
+                description='Filter by slug (partial match) - legacy support',
                 type=openapi.TYPE_STRING,
                 required=False
             ),
             openapi.Parameter(
                 name='title',
                 in_=openapi.IN_QUERY,
-                description='Filter by title (partial match)',
+                description='Filter by title (partial match) - legacy support',
                 type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                name='page',
+                in_=openapi.IN_QUERY,
+                description='Page number (default: 1)',
+                type=openapi.TYPE_INTEGER,
+                required=False
+            ),
+            openapi.Parameter(
+                name='limit',
+                in_=openapi.IN_QUERY,
+                description='Number of posts per page (default: 9, max: 50)',
+                type=openapi.TYPE_INTEGER,
                 required=False
             )
         ],
         responses={
-            200: BlogPostListSerializer(many=True)
+            200: openapi.Response(
+                description="Paginated list of blog posts",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'count': openapi.Schema(type=openapi.TYPE_INTEGER, description='Total number of posts'),
+                        'next': openapi.Schema(type=openapi.TYPE_STRING, description='URL to next page'),
+                        'previous': openapi.Schema(type=openapi.TYPE_STRING, description='URL to previous page'),
+                        'total_pages': openapi.Schema(type=openapi.TYPE_INTEGER, description='Total number of pages'),
+                        'current_page': openapi.Schema(type=openapi.TYPE_INTEGER, description='Current page number'),
+                        'page_size': openapi.Schema(type=openapi.TYPE_INTEGER, description='Number of posts per page'),
+                        'results': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(type=openapi.TYPE_OBJECT)
+                        )
+                    }
+                )
+            )
         },
         tags=['Posts']
     )

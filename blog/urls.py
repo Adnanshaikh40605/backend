@@ -7,6 +7,7 @@ router = DefaultRouter()
 router.register(r'posts', views.BlogPostViewSet)
 router.register(r'images', views.BlogImageViewSet)
 router.register(r'comments', views.CommentViewSet)
+router.register(r'categories', views.CategoryViewSet)
 
 urlpatterns = [
     # Include router URLs
@@ -21,4 +22,7 @@ urlpatterns = [
     
     # Custom endpoint for retrieving posts by slug
     path('posts/by-slug/<slug:slug>/', views.get_post_by_slug, name='post-by-slug'),
+    
+    # Related posts endpoint
+    path('posts/<slug:slug>/related/', views.get_related_posts, name='related-posts'),
 ]

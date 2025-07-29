@@ -9,11 +9,45 @@ from django.utils.text import slugify
 
 logger = logging.getLogger(__name__)
 
+class Category(models.Model):
+    """
+    Category model for organizing blog posts
+    """
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=120, unique=True, blank=True)
+    description = models.TextField(blank=True, null=True)
+    color = models.CharField(max_length=7, default='#007bff', help_text='Hex color code for category display')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name_plural = 'Categories'
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+            # Ensure uniqueness
+            original_slug = self.slug
+            counter = 1
+            while Category.objects.filter(slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
+    
+    def get_post_count(self):
+        """Get the number of published posts in this category"""
+        return self.posts.filter(published=True).count()
+
 class BlogPost(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=250, unique=True, blank=True)
     content = CKEditor5Field('Content', config_name='extends')
     featured_image = models.ImageField(upload_to='featured_images/', blank=True, null=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='posts', db_index=True)
     published = models.BooleanField(default=False, db_index=True)
     featured = models.BooleanField(default=False, db_index=True)
     position = models.IntegerField(default=0, db_index=True)
