@@ -153,7 +153,7 @@ class BlogPostListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = BlogPost
-        fields = ['id', 'title', 'slug', 'featured_image', 'featured_image_url', 
+        fields = ['id', 'title', 'slug', 'excerpt', 'read_time', 'featured_image', 'featured_image_url', 
                  'category', 'published', 'position', 'created_at', 'comment_count']
     
     def get_featured_image_url(self, obj):
@@ -175,7 +175,7 @@ class BlogPostSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = BlogPost
-        fields = ['id', 'title', 'slug', 'content', 'featured_image', 'featured_image_url', 'images', 'comments',
+        fields = ['id', 'title', 'slug', 'content', 'excerpt', 'read_time', 'featured_image', 'featured_image_url', 'images', 'comments',
                  'category', 'published', 'featured', 'position', 'created_at', 'updated_at']
     
     def get_featured_image_url(self, obj):

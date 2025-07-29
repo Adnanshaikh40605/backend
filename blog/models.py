@@ -6,6 +6,9 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 import logging
 from django.utils.text import slugify
+from django.utils.html import strip_tags
+import re
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -46,16 +49,69 @@ class BlogPost(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=250, unique=True, blank=True)
     content = CKEditor5Field('Content', config_name='extends')
+    excerpt = models.TextField(
+        max_length=300, 
+        blank=True, 
+        help_text='Brief description of the post (max 300 characters). If left blank, will be auto-generated from content.'
+    )
     featured_image = models.ImageField(upload_to='featured_images/', blank=True, null=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='posts', db_index=True)
     published = models.BooleanField(default=False, db_index=True)
     featured = models.BooleanField(default=False, db_index=True)
     position = models.IntegerField(default=0, db_index=True)
+    read_time = models.PositiveIntegerField(
+        default=0, 
+        help_text='Estimated reading time in minutes (auto-calculated based on content)'
+    )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return self.title
+
+    def calculate_read_time(self):
+        """Calculate estimated reading time based on content"""
+        if not self.content:
+            return 1
+        
+        # Strip HTML tags and get plain text
+        plain_text = strip_tags(self.content)
+        
+        # Count words (average reading speed is 200-250 words per minute)
+        word_count = len(plain_text.split())
+        
+        # Calculate read time (using 200 words per minute as average)
+        read_time = math.ceil(word_count / 200)
+        
+        # Minimum 1 minute read time
+        return max(1, read_time)
+    
+    def generate_excerpt(self):
+        """Generate excerpt from content if not provided"""
+        if self.excerpt:
+            return self.excerpt
+        
+        if not self.content:
+            return ""
+        
+        # Strip HTML tags and get plain text
+        plain_text = strip_tags(self.content)
+        
+        # Clean up extra whitespace
+        plain_text = re.sub(r'\s+', ' ', plain_text).strip()
+        
+        # Generate excerpt (first 250 characters, ending at word boundary)
+        if len(plain_text) <= 250:
+            return plain_text
+        
+        # Find the last complete word within 250 characters
+        excerpt = plain_text[:250]
+        last_space = excerpt.rfind(' ')
+        
+        if last_space > 200:  # Ensure we have a reasonable length
+            excerpt = excerpt[:last_space]
+        
+        return excerpt + "..."
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -66,6 +122,13 @@ class BlogPost(models.Model):
             while BlogPost.objects.filter(slug=self.slug).exists():
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
+        
+        # Auto-generate excerpt if not provided
+        if not self.excerpt and self.content:
+            self.excerpt = self.generate_excerpt()
+        
+        # Auto-calculate read time
+        self.read_time = self.calculate_read_time()
         # Optimize featured image if present
         if self.featured_image:
             try:
