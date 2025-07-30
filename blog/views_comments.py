@@ -21,6 +21,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = [AllowAny]
+    authentication_classes = []  # Remove all authentication for this viewset
     
     def create(self, request, *args, **kwargs):
         """Create a new comment with better error handling"""
@@ -553,4 +554,4 @@ def comment_action(request, action, comment_id=None):
         return Response({
             'status': 'error',
             'message': f'Unknown action: {action}'
-        }, status=status.HTTP_400_BAD_REQUEST) 
+        }, status=status.HTTP_400_BAD_REQUEST)

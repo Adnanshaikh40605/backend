@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from django.db.models import Count, Q
 from django.utils.html import strip_tags
 import logging
@@ -15,22 +15,43 @@ from .serializers import CategorySerializer, BlogPostListSerializer
 # Setup logger
 logger = logging.getLogger(__name__)
 
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+class CategoryViewSet(viewsets.ModelViewSet):
     """
-    API endpoint for retrieving categories.
+    API endpoint for managing categories.
     
     list:
     Return a list of all categories with post counts.
     
     retrieve:
     Return a specific category by slug.
+    
+    create:
+    Create a new category (requires authentication).
+    
+    update:
+    Update an existing category (requires authentication).
+    
+    destroy:
+    Delete a category (requires authentication).
     """
     queryset = Category.objects.all().annotate(
         post_count=Count('posts', filter=Q(posts__published=True))
     ).order_by('name')
     serializer_class = CategorySerializer
     lookup_field = 'slug'
-    permission_classes = [AllowAny]
+    
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.action in ['list', 'retrieve']:
+            # Allow anyone to view categories
+            permission_classes = [AllowAny]
+        else:
+            # Require authentication for create, update, delete
+            permission_classes = [IsAuthenticated]
+        
+        return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(
         operation_description="List all categories with post counts",
@@ -72,6 +93,63 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         """Retrieve a specific category by slug"""
         return super().retrieve(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Create a new category",
+        request_body=CategorySerializer,
+        responses={
+            201: CategorySerializer(),
+            400: "Bad request - validation errors",
+            401: "Authentication required"
+        },
+        tags=['Categories']
+    )
+    def create(self, request, *args, **kwargs):
+        """Create a new category (requires authentication)"""
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Update an existing category",
+        request_body=CategorySerializer,
+        responses={
+            200: CategorySerializer(),
+            400: "Bad request - validation errors",
+            401: "Authentication required",
+            404: "Category not found"
+        },
+        tags=['Categories']
+    )
+    def update(self, request, *args, **kwargs):
+        """Update an existing category (requires authentication)"""
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Partially update an existing category",
+        request_body=CategorySerializer,
+        responses={
+            200: CategorySerializer(),
+            400: "Bad request - validation errors",
+            401: "Authentication required",
+            404: "Category not found"
+        },
+        tags=['Categories']
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """Partially update an existing category (requires authentication)"""
+        return super().partial_update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Delete a category",
+        responses={
+            204: "Category deleted successfully",
+            401: "Authentication required",
+            404: "Category not found"
+        },
+        tags=['Categories']
+    )
+    def destroy(self, request, *args, **kwargs):
+        """Delete a category (requires authentication)"""
+        return super().destroy(request, *args, **kwargs)
 
 
 @swagger_auto_schema(
