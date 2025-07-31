@@ -70,13 +70,15 @@ class CommentSerializer(serializers.ModelSerializer):
     reply_count = serializers.SerializerMethodField(read_only=True)
     level = serializers.IntegerField(read_only=True)
     has_more_replies = serializers.SerializerMethodField(read_only=True)
+    like_count = serializers.SerializerMethodField(read_only=True)
+    liked_by = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Comment
         fields = ['id', 'post', 'post_title', 'parent', 'author_name', 'author_email', 
                  'author_website', 'content', 'approved', 'is_trash',
                  'created_at', 'admin_reply', 'replies', 'reply_count', 
-                 'level', 'path', 'has_more_replies']
+                 'level', 'path', 'has_more_replies', 'like_count', 'liked_by']
         read_only_fields = ['is_trash', 'level', 'path']
     
     def validate_post(self, value):
@@ -145,11 +147,20 @@ class CommentSerializer(serializers.ModelSerializer):
             return False
             
         return obj.replies.filter(approved=True, is_trash=False).count() > limit
+    
+    def get_like_count(self, obj):
+        """Get the number of likes for this comment"""
+        return obj.likes.count()
+    
+    def get_liked_by(self, obj):
+        """Get the names of users who liked this comment"""
+        return list(obj.likes.values_list('user_name', flat=True))
 
 class BlogPostListSerializer(serializers.ModelSerializer):
     featured_image_url = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
     category = CategorySerializer(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), source='category', required=False, allow_null=True)
     
     class Meta:
         model = BlogPost
@@ -176,7 +187,7 @@ class BlogPostSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlogPost
         fields = ['id', 'title', 'slug', 'content', 'excerpt', 'read_time', 'featured_image', 'featured_image_url', 'images', 'comments',
-                 'category', 'published', 'featured', 'position', 'created_at', 'updated_at']
+                 'category', 'category_id', 'published', 'featured', 'position', 'created_at', 'updated_at']
     
     def get_featured_image_url(self, obj):
         if obj.featured_image:
@@ -230,4 +241,4 @@ class BlogPostSerializer(serializers.ModelSerializer):
         for image_data in additional_images:
             BlogImage.objects.create(post=instance, image=image_data)
             
-        return instance 
+        return instance

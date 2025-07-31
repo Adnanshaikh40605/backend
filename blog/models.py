@@ -308,3 +308,15 @@ class Comment(models.Model):
             models.Index(fields=['level']),
             models.Index(fields=['path']),
         ] 
+
+class CommentLike(models.Model):
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='likes')
+    user_name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('comment', 'user_name')
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user_name} liked comment {self.comment.id}"

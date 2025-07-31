@@ -8,7 +8,7 @@ from drf_yasg import openapi
 from django.db.models import Count
 import logging
 
-from .models import BlogPost, Comment
+from .models import BlogPost, Comment, CommentLike
 from .serializers import CommentSerializer
 
 # Setup logger
@@ -22,6 +22,102 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [AllowAny]
     authentication_classes = []  # Remove all authentication for this viewset
+    
+    @swagger_auto_schema(
+        method='post',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['user_name'],
+            properties={
+                'user_name': openapi.Schema(type=openapi.TYPE_STRING, description='Name of the user liking the comment'),
+            },
+        ),
+        responses={200: 'Comment liked successfully', 400: 'Bad request', 404: 'Comment not found'}
+    )
+    @action(detail=True, methods=['post'])
+    def like(self, request, pk=None):
+        """Like a comment"""
+        try:
+            comment = self.get_object()
+            user_name = request.data.get('user_name')
+            
+            if not user_name:
+                return Response({
+                    'status': 'error',
+                    'message': 'User name is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check if user already liked this comment
+            if CommentLike.objects.filter(comment=comment, user_name=user_name).exists():
+                return Response({
+                    'status': 'error',
+                    'message': 'You have already liked this comment'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create the like
+            CommentLike.objects.create(comment=comment, user_name=user_name)
+            
+            # Return updated comment data
+            serializer = self.get_serializer(comment)
+            return Response({
+                'status': 'success',
+                'message': 'Comment liked successfully',
+                'comment': serializer.data
+            })
+            
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @swagger_auto_schema(
+        method='post',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['user_name'],
+            properties={
+                'user_name': openapi.Schema(type=openapi.TYPE_STRING, description='Name of the user unliking the comment'),
+            },
+        ),
+        responses={200: 'Comment unliked successfully', 400: 'Bad request', 404: 'Comment not found'}
+    )
+    @action(detail=True, methods=['post'])
+    def unlike(self, request, pk=None):
+        """Unlike a comment"""
+        try:
+            comment = self.get_object()
+            user_name = request.data.get('user_name')
+            
+            if not user_name:
+                return Response({
+                    'status': 'error',
+                    'message': 'User name is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Try to find and delete the like
+            try:
+                like = CommentLike.objects.get(comment=comment, user_name=user_name)
+                like.delete()
+            except CommentLike.DoesNotExist:
+                return Response({
+                    'status': 'error',
+                    'message': 'You have not liked this comment'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Return updated comment data
+            serializer = self.get_serializer(comment)
+            return Response({
+                'status': 'success',
+                'message': 'Comment unliked successfully',
+                'comment': serializer.data
+            })
+            
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def create(self, request, *args, **kwargs):
         """Create a new comment with better error handling"""
