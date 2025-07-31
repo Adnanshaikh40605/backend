@@ -172,7 +172,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         return terms[:10]  # Limit to 10 search terms for performance
 
     @swagger_auto_schema(
-        operation_description="Create a new blog post with optional image uploads",
+        operation_description="Create a new blog post with optional image uploads. You can set the category using either category_id or category_name.",
         request_body=BlogPostSerializer,
         responses={
             201: BlogPostSerializer,
@@ -206,9 +206,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             
             # Add the collected images as a list
             if additional_images:
-                data._mutable = True
                 data['additional_images'] = additional_images
-                data._mutable = False
                 
             # Update the request data
             request._full_data = data
@@ -474,7 +472,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         return super().retrieve(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_description="Update a blog post",
+        operation_description="Update a blog post. You can update the category using either category_id or category_name.",
         request_body=BlogPostSerializer,
         responses={
             200: BlogPostSerializer(),
@@ -488,7 +486,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         return super().update(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_description="Partially update a blog post",
+        operation_description="Partially update a blog post. You can update the category using either category_id or category_name.",
         request_body=BlogPostSerializer,
         responses={
             200: BlogPostSerializer(),

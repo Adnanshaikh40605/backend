@@ -45,6 +45,12 @@ class CategorySerializer(serializers.ModelSerializer):
             return obj.post_count
         # Otherwise calculate it
         return obj.get_post_count()
+        
+    def to_representation(self, instance):
+        """Ensure we return a proper representation even if instance is None"""
+        if instance is None:
+            return None
+        return super().to_representation(instance)
 
 class BlogImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
@@ -161,11 +167,19 @@ class BlogPostListSerializer(serializers.ModelSerializer):
     comment_count = serializers.SerializerMethodField()
     category = CategorySerializer(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), source='category', required=False, allow_null=True)
+    category_name = serializers.CharField(write_only=True, required=False, allow_null=True)
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Ensure category is properly included even if it's None
+        if instance.category is None:
+            representation['category'] = None
+        return representation
     
     class Meta:
         model = BlogPost
         fields = ['id', 'title', 'slug', 'excerpt', 'read_time', 'featured_image', 'featured_image_url', 
-                 'category', 'published', 'position', 'created_at', 'comment_count']
+                 'category', 'category_id', 'category_name', 'published', 'position', 'created_at', 'comment_count']
     
     def get_featured_image_url(self, obj):
         if obj.featured_image:
@@ -174,20 +188,69 @@ class BlogPostListSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.featured_image.url)
             return obj.featured_image.url
         return None
+        
+    def validate_category_name(self, value):
+        if value:
+            try:
+                return Category.objects.get(name__iexact=value)
+            except Category.DoesNotExist:
+                raise serializers.ValidationError(f"Category with name '{value}' does not exist.")
+        return None
     
     def get_comment_count(self, obj):
         return obj.comments.filter(approved=True).count()
+        
+    def to_internal_value(self, data):
+        # Debug print
+        import logging
+        logger = logging.getLogger('django')
+        logger.info(f"BlogPostSerializer.to_internal_value received data: {data}")
+        
+        # Create a mutable copy of the data to avoid QueryDict immutable errors
+        if hasattr(data, '_mutable'):
+            # It's a QueryDict, create a mutable copy
+            data = data.copy()
+        else:
+            # It's a regular dict, create a copy to be safe
+            data = dict(data)
+        
+        # Handle category_name if provided
+        if 'category_name' in data and data['category_name']:
+            try:
+                category = Category.objects.get(name__iexact=data['category_name'])
+                # Set category_id to use the found category
+                data['category_id'] = category.id
+                logger.info(f"Found category by name: {category.name} (ID: {category.id})")
+            except Category.DoesNotExist:
+                logger.warning(f"Category with name '{data['category_name']}' not found")
+                # Let the validation handle this error
+                pass
+        # Handle category field if it's an integer (direct ID)
+        elif 'category' in data and data['category'] and isinstance(data['category'], (int, str)) and str(data['category']).isdigit():
+            data['category_id'] = int(data['category'])
+            logger.info(f"Using category ID directly: {data['category_id']}")
+            
+        return super().to_internal_value(data)
 
 class BlogPostSerializer(serializers.ModelSerializer):
     images = BlogImageSerializer(many=True, read_only=True)
     comments = serializers.SerializerMethodField()
     featured_image_url = serializers.SerializerMethodField()
     category = CategorySerializer(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), source='category', required=False, allow_null=True)
+    category_name = serializers.CharField(write_only=True, required=False, allow_null=True)
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Ensure category is properly included even if it's None
+        if instance.category is None:
+            representation['category'] = None
+        return representation
     
     class Meta:
         model = BlogPost
         fields = ['id', 'title', 'slug', 'content', 'excerpt', 'read_time', 'featured_image', 'featured_image_url', 'images', 'comments',
-                 'category', 'category_id', 'published', 'featured', 'position', 'created_at', 'updated_at']
+                 'category', 'category_id', 'category_name', 'published', 'featured', 'position', 'created_at', 'updated_at']
     
     def get_featured_image_url(self, obj):
         if obj.featured_image:
@@ -210,6 +273,38 @@ class BlogPostSerializer(serializers.ModelSerializer):
         })
         
         return CommentSerializer(approved_comments, many=True, context=context).data
+        
+    def to_internal_value(self, data):
+        # Debug print
+        import logging
+        logger = logging.getLogger('django')
+        logger.info(f"BlogPostListSerializer.to_internal_value received data: {data}")
+        
+        # Create a mutable copy of the data to avoid QueryDict immutable errors
+        if hasattr(data, '_mutable'):
+            # It's a QueryDict, create a mutable copy
+            data = data.copy()
+        else:
+            # It's a regular dict, create a copy to be safe
+            data = dict(data)
+        
+        # Handle category_name if provided
+        if 'category_name' in data and data['category_name']:
+            try:
+                category = Category.objects.get(name__iexact=data['category_name'])
+                # Set category_id to use the found category
+                data['category_id'] = category.id
+                logger.info(f"Found category by name: {category.name} (ID: {category.id})")
+            except Category.DoesNotExist:
+                logger.warning(f"Category with name '{data['category_name']}' not found")
+                # Let the validation handle this error
+                pass
+        # Handle category field if it's an integer (direct ID)
+        elif 'category' in data and data['category'] and isinstance(data['category'], (int, str)) and str(data['category']).isdigit():
+            data['category_id'] = int(data['category'])
+            logger.info(f"Using category ID directly: {data['category_id']}")
+            
+        return super().to_internal_value(data)
     
     def create(self, validated_data):
         # Extract additional images if present
@@ -235,6 +330,11 @@ class BlogPostSerializer(serializers.ModelSerializer):
         # Update the blog post fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+        
+        # Ensure category is properly saved
+        if 'category' in validated_data:
+            instance.category = validated_data.get('category')
+            
         instance.save()
         
         # Create image entries for each additional image
