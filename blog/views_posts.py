@@ -62,6 +62,11 @@ class BlogPostViewSet(viewsets.ModelViewSet):
                 elif published.lower() == 'false':
                     queryset = queryset.filter(published=False)
             
+            # Filter by category if provided (case-insensitive)
+            category = self.request.query_params.get('category')
+            if category:
+                queryset = queryset.filter(category__name__iexact=category)
+            
             # Universal search functionality
             search_query = self.request.query_params.get('search')
             if search_query:
@@ -395,6 +400,13 @@ class BlogPostViewSet(viewsets.ModelViewSet):
                 required=False
             ),
             openapi.Parameter(
+                name='category',
+                in_=openapi.IN_QUERY,
+                description='Filter by category name (case-insensitive exact match)',
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
                 name='slug',
                 in_=openapi.IN_QUERY,
                 description='Filter by slug (partial match) - legacy support',
@@ -505,4 +517,4 @@ def get_post_by_slug(request, slug):
     """Get a blog post by its slug"""
     post = get_object_or_404(BlogPost, slug=slug)
     serializer = BlogPostSerializer(post)
-    return Response(serializer.data) 
+    return Response(serializer.data)
