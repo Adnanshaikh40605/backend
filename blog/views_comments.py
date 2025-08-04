@@ -213,6 +213,9 @@ class CommentViewSet(viewsets.ModelViewSet):
             elif is_trash.lower() == 'false':
                 queryset = queryset.filter(is_trash=False)
         
+        # Filter to only include top-level comments (not replies)
+        queryset = queryset.filter(parent__isnull=True)
+        
         # Default ordering
         return queryset.order_by('-created_at')
     
@@ -495,8 +498,8 @@ class CommentViewSet(viewsets.ModelViewSet):
                 'error': 'Invalid post ID format'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Get all non-trash comments for this post
-        all_comments = Comment.objects.filter(post_id=post_id, is_trash=False)
+        # Get all non-trash top-level comments for this post (not replies)
+        all_comments = Comment.objects.filter(post_id=post_id, is_trash=False, parent__isnull=True)
         
         # Split into approved and pending
         approved_comments = all_comments.filter(approved=True)
@@ -534,13 +537,13 @@ class CommentViewSet(viewsets.ModelViewSet):
                 'error': 'Post not found'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # Get counts
-        comments = Comment.objects.filter(post=post, is_trash=False)
+        # Get counts for top-level comments only
+        comments = Comment.objects.filter(post=post, is_trash=False, parent__isnull=True)
         total_count = comments.count()
         approved_count = comments.filter(approved=True).count()
         unapproved_count = comments.filter(approved=False).count()
         
-        # Get samples
+        # Get samples of top-level comments
         approved_samples = comments.filter(approved=True)[:3]
         unapproved_samples = comments.filter(approved=False)[:3]
         
@@ -565,15 +568,16 @@ class CommentViewSet(viewsets.ModelViewSet):
 @permission_classes([AllowAny])
 def comment_counts(request):
     """Get all comment counts categorized by status"""
-    # Get counts for different comment categories
-    total_count = Comment.objects.count()
-    approved_count = Comment.objects.filter(approved=True, is_trash=False).count()
-    pending_count = Comment.objects.filter(approved=False, is_trash=False).count()
-    trashed_count = Comment.objects.filter(is_trash=True).count()
+    # Get counts for different comment categories (top-level comments only)
+    top_level_comments = Comment.objects.filter(parent__isnull=True)
+    total_count = top_level_comments.count()
+    approved_count = top_level_comments.filter(approved=True, is_trash=False).count()
+    pending_count = top_level_comments.filter(approved=False, is_trash=False).count()
+    trashed_count = top_level_comments.filter(is_trash=True).count()
     
     # Calculate counts by post
-    posts_with_comments = Comment.objects.values('post').distinct().count()
-    posts_with_pending = Comment.objects.filter(approved=False, is_trash=False).values('post').distinct().count()
+    posts_with_comments = top_level_comments.values('post').distinct().count()
+    posts_with_pending = top_level_comments.filter(approved=False, is_trash=False).values('post').distinct().count()
     
     # Return counts
     return Response({
