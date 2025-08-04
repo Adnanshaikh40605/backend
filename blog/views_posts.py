@@ -516,3 +516,31 @@ def get_post_by_slug(request, slug):
     post = get_object_or_404(BlogPost, slug=slug)
     serializer = BlogPostSerializer(post)
     return Response(serializer.data)
+
+
+@swagger_auto_schema(
+    method='get',
+    tags=['Posts'],
+    operation_description="Get a list of all blog post slugs",
+    responses={
+        200: openapi.Response(
+            description="List of all blog post slugs",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'slugs': openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_STRING)
+                    )
+                }
+            )
+        )
+    }
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_all_slugs(request):
+    """Get a list of all blog post slugs"""
+    # Get all slugs from published blog posts
+    slugs = BlogPost.objects.filter(published=True).order_by('-created_at').values_list('slug', flat=True)
+    return Response({'slugs': list(slugs)})

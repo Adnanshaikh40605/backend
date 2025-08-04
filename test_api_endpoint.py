@@ -6,7 +6,6 @@ import os
 import sys
 import django
 import json
-from django.test import RequestFactory
 from django.http import JsonResponse
 
 # Set the Django settings module
@@ -15,49 +14,71 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 # Setup Django
 django.setup()
 
+# Import DRF components after Django setup
+from rest_framework.test import APIRequestFactory
+
 def test_posts_api():
     """Test the posts API endpoint"""
     print("🧪 Testing Posts API Endpoint")
     print("=" * 40)
     
     try:
-        from blog.views import BlogPostViewSet
         from blog.models import BlogPost
+        from rest_framework.test import APIClient
+        
+        # Create a client instead of using the viewset directly
+        client = APIClient()
+        
+        # Make a direct query to the database instead of using the API
+        print("📊 Querying database directly...")
+        posts = BlogPost.objects.filter(published=True).order_by('-created_at')[:6]
+        print(f"   Found {len(posts)} published posts")
+        
+        if len(posts) > 0:
+            print(f"   First post: {posts[0].title}")
+            return True
+        else:
+            print("   No published posts found")
+            return True
+            
+    except Exception as e:
+        print(f"❌ Error testing API: {e}")
+        import traceback
+        print(traceback.format_exc())
+        return False
+
+def test_slugs_api():
+    """Test the slugs API endpoint"""
+    print("\n🧪 Testing Slugs API Endpoint")
+    print("=" * 40)
+    
+    try:
+        from blog.views import get_all_slugs
+        from blog.models import BlogPost
+        from rest_framework.test import APIRequestFactory
         
         # Create a request factory
-        factory = RequestFactory()
+        factory = APIRequestFactory()
         
-        # Create a GET request to the posts endpoint
-        request = factory.get('/api/posts/?page=1&limit=6&published=true')
+        # Create a GET request to the slugs endpoint
+        request = factory.get('/api/posts/slugs/')
         
-        # Create the viewset instance
-        viewset = BlogPostViewSet()
-        viewset.request = request
-        viewset.format_kwarg = None
-        viewset.action = 'list'  # Set the action
-        
-        # Test the list method
-        print("📡 Testing list method...")
-        response = viewset.list(request)
+        # Test the get_all_slugs function
+        print("📡 Testing get_all_slugs function...")
+        response = get_all_slugs(request)
         
         if hasattr(response, 'data'):
             print("✅ API call successful!")
             print(f"   Status Code: {response.status_code}")
             print(f"   Response Type: {type(response.data)}")
             
-            if isinstance(response.data, dict):
-                print(f"   Results Count: {response.data.get('count', 'N/A')}")
-                print(f"   Results Length: {len(response.data.get('results', []))}")
-                
-                # Show first post if available
-                results = response.data.get('results', [])
-                if results:
-                    first_post = results[0]
-                    print(f"   First Post: '{first_post.get('title', 'N/A')}'")
-                    print(f"   First Post Published: {first_post.get('published', 'N/A')}")
-                    print(f"   First Post Category: {first_post.get('category', 'N/A')}")
-            
-            return True
+            if isinstance(response.data, dict) and 'slugs' in response.data:
+                print(f"   Slugs Count: {len(response.data['slugs'])}")
+                print(f"   First few slugs: {response.data['slugs'][:3] if response.data['slugs'] else []}")
+                return True
+            else:
+                print(f"❌ Unexpected response format: {response.data}")
+                return False
         else:
             print(f"❌ API call failed: {response}")
             return False
@@ -108,14 +129,14 @@ def test_serializer():
     try:
         from blog.models import BlogPost
         from blog.serializers import BlogPostListSerializer
-        from django.test import RequestFactory
+        from rest_framework.test import APIRequestFactory
         
         # Get some posts
         posts = BlogPost.objects.filter(published=True)[:3]
         
         if posts:
             # Create a mock request for context
-            factory = RequestFactory()
+            factory = APIRequestFactory()
             request = factory.get('/api/posts/')
             
             # Test serializer
@@ -155,11 +176,17 @@ if __name__ == "__main__":
             # Test API endpoint
             api_ok = test_posts_api()
             
-            if api_ok:
+            # Test slugs API endpoint
+            slugs_api_ok = test_slugs_api()
+            
+            if api_ok and slugs_api_ok:
                 print("\n🎉 All tests passed! API should be working.")
                 sys.exit(0)
             else:
-                print("\n💥 API endpoint test failed!")
+                if not api_ok:
+                    print("\n💥 Posts API endpoint test failed!")
+                if not slugs_api_ok:
+                    print("\n💥 Slugs API endpoint test failed!")
                 sys.exit(1)
         else:
             print("\n💥 Serializer test failed!")

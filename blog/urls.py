@@ -23,6 +23,9 @@ urlpatterns = [
     # Custom endpoint for retrieving posts by slug
     path('posts/by-slug/<slug:slug>/', views.get_post_by_slug, name='post-by-slug'),
     
+    # Endpoint for retrieving all post slugs
+    path('all-slugs/', views.get_all_slugs, name='all-slugs'),
+    
     # Related posts endpoint
     path('posts/<slug:slug>/related/', views.get_related_posts, name='related-posts'),
 ]
