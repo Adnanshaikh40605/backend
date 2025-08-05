@@ -227,7 +227,8 @@ class CommentViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def counts(self, request):
-        """Get comment counts by status"""
+        """Get comment counts by status (including replies for admin)"""
+        # For admin interface, count ALL comments including replies
         all_count = Comment.objects.count()
         pending_count = Comment.objects.filter(approved=False, is_trash=False).count()
         approved_count = Comment.objects.filter(approved=True, is_trash=False).count()
@@ -514,6 +515,53 @@ class CommentViewSet(viewsets.ModelViewSet):
             'pending': pending_serialized,
             'total': all_comments.count()
         })
+    
+    @action(detail=False, methods=['get'])
+    def admin_all(self, request):
+        """Return ALL comments including replies for admin management"""
+        # Get query parameters
+        post_id = request.query_params.get('post')
+        approved = request.query_params.get('approved')
+        is_trash = request.query_params.get('is_trash')
+        
+        # Start with all comments
+        queryset = Comment.objects.all()
+        
+        # Filter by post if provided
+        if post_id:
+            try:
+                post_id = int(post_id)
+                queryset = queryset.filter(post_id=post_id)
+            except ValueError:
+                return Response({
+                    'error': 'Invalid post ID format'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Filter by approval status if provided
+        if approved is not None:
+            if approved.lower() == 'true':
+                queryset = queryset.filter(approved=True)
+            elif approved.lower() == 'false':
+                queryset = queryset.filter(approved=False)
+        
+        # Filter by trash status if provided
+        if is_trash is not None:
+            if is_trash.lower() == 'true':
+                queryset = queryset.filter(is_trash=True)
+            elif is_trash.lower() == 'false':
+                queryset = queryset.filter(is_trash=False)
+        
+        # Order by creation date (newest first)
+        queryset = queryset.order_by('-created_at')
+        
+        # Serialize comments without nested replies to avoid recursion in admin view
+        context = {'no_replies': True}  # This will prevent nested replies in serialization
+        serialized = CommentSerializer(queryset, many=True, context=context).data
+        
+        return Response({
+            'results': serialized,
+            'count': queryset.count()
+        })
         
     @action(detail=False, methods=['get'])
     def check_approved(self, request):
@@ -568,7 +616,8 @@ class CommentViewSet(viewsets.ModelViewSet):
 @permission_classes([AllowAny])
 def comment_counts(request):
     """Get all comment counts categorized by status"""
-    # Get counts for different comment categories (top-level comments only)
+    # For public API, count top-level comments only
+    # For admin interface, we use the viewset counts action which includes all comments
     top_level_comments = Comment.objects.filter(parent__isnull=True)
     total_count = top_level_comments.count()
     approved_count = top_level_comments.filter(approved=True, is_trash=False).count()
