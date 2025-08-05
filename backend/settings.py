@@ -14,6 +14,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'a!x(mhy4kdh(r(*%)tw5cb5n%y4u%l*gtwuc-j=b&!kdohs-u5')
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
+# HTTPS/SSL Settings for Production
+if not DEBUG:
+    # Force HTTPS in production
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_TLS = True
+    
+    # Additional security settings
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # Session security
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 # Dynamically set allowed hosts from env
 allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend-production-92ae.up.railway.app,blog-website-sigma-one.vercel.app,dohblog.vercel.app,http://localhost:3000,http://localhost:3001")
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(",") if host.strip()]

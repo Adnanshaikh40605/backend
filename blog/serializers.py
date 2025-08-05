@@ -1,6 +1,15 @@
 from rest_framework import serializers
 from .models import BlogPost, BlogImage, Comment, Category
 from django.contrib.auth.models import User
+from django.conf import settings
+
+def ensure_https_url(url):
+    """
+    Ensure URL uses HTTPS in production to avoid mixed content issues
+    """
+    if not settings.DEBUG and url and url.startswith('http://'):
+        return url.replace('http://', 'https://')
+    return url
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for the User model"""
@@ -63,8 +72,9 @@ class BlogImageSerializer(serializers.ModelSerializer):
         if obj.image:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
+                url = request.build_absolute_uri(obj.image.url)
+                return ensure_https_url(url)
+            return ensure_https_url(obj.image.url)
         return None
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -185,8 +195,9 @@ class BlogPostListSerializer(serializers.ModelSerializer):
         if obj.featured_image:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.featured_image.url)
-            return obj.featured_image.url
+                url = request.build_absolute_uri(obj.featured_image.url)
+                return ensure_https_url(url)
+            return ensure_https_url(obj.featured_image.url)
         return None
         
     def validate_category_name(self, value):
@@ -256,8 +267,9 @@ class BlogPostSerializer(serializers.ModelSerializer):
         if obj.featured_image:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.featured_image.url)
-            return obj.featured_image.url
+                url = request.build_absolute_uri(obj.featured_image.url)
+                return ensure_https_url(url)
+            return ensure_https_url(obj.featured_image.url)
         return None
     
     def get_comments(self, obj):
