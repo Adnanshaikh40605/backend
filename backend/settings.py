@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'storages',
 
     # Local apps
     'blog',
@@ -141,9 +142,46 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 # Add mimetypes for favicon
 mimetypes.add_type("image/x-icon", ".ico")
 
-# Media files
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Media files configuration
+if not DEBUG:
+    # AWS S3 Configuration for Production
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'us-east-1')
+    
+    # S3 Settings
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',  # 24 hours
+    }
+    AWS_DEFAULT_ACL = None  # Disable ACLs
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_QUERYSTRING_AUTH = False  # Don't add auth parameters to URLs
+    
+    # Enhanced Security Settings
+    AWS_S3_SECURE_URLS = True  # Use HTTPS
+    AWS_S3_USE_SSL = True      # Force SSL
+    AWS_S3_VERIFY = True       # Verify SSL certificates
+    
+    # Performance Optimizations
+    AWS_S3_MAX_MEMORY_SIZE = 1024 * 1024 * 50  # 50MB
+    AWS_S3_TRANSFER_CONFIG = {
+        'multipart_threshold': 1024 * 1024 * 50,  # 50MB
+        'max_concurrency': 10,
+        'multipart_chunksize': 1024 * 1024 * 10,  # 10MB
+        'use_threads': True
+    }
+    
+    # Use S3 for media files
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    
+    # Update media URL to use S3
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+else:
+    # Local development settings
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -281,7 +319,11 @@ CKEDITOR_5_CONFIGS = {
         ],
     }
 }
-CKEDITOR_5_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+# CKEditor storage configuration
+if not DEBUG:
+    CKEDITOR_5_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+else:
+    CKEDITOR_5_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 CKEDITOR_5_UPLOAD_PATH = "uploads/ckeditor/"
 
 # Swagger settings
