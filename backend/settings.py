@@ -149,6 +149,16 @@ AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'us-east-1')
 
+# Clean up environment variables (remove quotes and extra spaces)
+if AWS_ACCESS_KEY_ID:
+    AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID.strip().strip('\'"')
+if AWS_SECRET_ACCESS_KEY:
+    AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY.strip().strip('\'"')
+if AWS_STORAGE_BUCKET_NAME:
+    AWS_STORAGE_BUCKET_NAME = AWS_STORAGE_BUCKET_NAME.strip().strip('\'"')
+if AWS_S3_REGION_NAME:
+    AWS_S3_REGION_NAME = AWS_S3_REGION_NAME.strip().strip('\'"')
+
 # Use S3 if credentials are provided, otherwise use local storage
 if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
     # AWS S3 Configuration
