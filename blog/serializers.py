@@ -70,11 +70,20 @@ class BlogImageSerializer(serializers.ModelSerializer):
     
     def get_image_url(self, obj):
         if obj.image:
+            # For S3 storage, obj.image.url already returns the full S3 URL
+            # For local storage, we need to build the absolute URI
+            url = obj.image.url
+            
+            # If it's already a full URL (S3), return it as is
+            if url.startswith('http'):
+                return ensure_https_url(url)
+            
+            # If it's a relative URL (local storage), build absolute URI
             request = self.context.get('request')
             if request:
-                url = request.build_absolute_uri(obj.image.url)
+                url = request.build_absolute_uri(url)
                 return ensure_https_url(url)
-            return ensure_https_url(obj.image.url)
+            return ensure_https_url(url)
         return None
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -193,11 +202,20 @@ class BlogPostListSerializer(serializers.ModelSerializer):
     
     def get_featured_image_url(self, obj):
         if obj.featured_image:
+            # For S3 storage, obj.featured_image.url already returns the full S3 URL
+            # For local storage, we need to build the absolute URI
+            url = obj.featured_image.url
+            
+            # If it's already a full URL (S3), return it as is
+            if url.startswith('http'):
+                return ensure_https_url(url)
+            
+            # If it's a relative URL (local storage), build absolute URI
             request = self.context.get('request')
             if request:
-                url = request.build_absolute_uri(obj.featured_image.url)
+                url = request.build_absolute_uri(url)
                 return ensure_https_url(url)
-            return ensure_https_url(obj.featured_image.url)
+            return ensure_https_url(url)
         return None
         
     def validate_category_name(self, value):
@@ -267,11 +285,20 @@ class BlogPostSerializer(serializers.ModelSerializer):
     
     def get_featured_image_url(self, obj):
         if obj.featured_image:
+            # For S3 storage, obj.featured_image.url already returns the full S3 URL
+            # For local storage, we need to build the absolute URI
+            url = obj.featured_image.url
+            
+            # If it's already a full URL (S3), return it as is
+            if url.startswith('http'):
+                return ensure_https_url(url)
+            
+            # If it's a relative URL (local storage), build absolute URI
             request = self.context.get('request')
             if request:
-                url = request.build_absolute_uri(obj.featured_image.url)
+                url = request.build_absolute_uri(url)
                 return ensure_https_url(url)
-            return ensure_https_url(obj.featured_image.url)
+            return ensure_https_url(url)
         return None
     
     def get_comments(self, obj):
