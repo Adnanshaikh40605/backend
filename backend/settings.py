@@ -143,13 +143,15 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 mimetypes.add_type("image/x-icon", ".ico")
 
 # Media files configuration
-if not DEBUG:
-    # AWS S3 Configuration for Production
-    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'us-east-1')
-    
+# Check if AWS credentials are provided
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'us-east-1')
+
+# Use S3 if credentials are provided, otherwise use local storage
+if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
+    # AWS S3 Configuration
     # S3 Settings
     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
     AWS_S3_OBJECT_PARAMETERS = {
@@ -166,22 +168,20 @@ if not DEBUG:
     
     # Performance Optimizations
     AWS_S3_MAX_MEMORY_SIZE = 1024 * 1024 * 50  # 50MB
-    AWS_S3_TRANSFER_CONFIG = {
-        'multipart_threshold': 1024 * 1024 * 50,  # 50MB
-        'max_concurrency': 10,
-        'multipart_chunksize': 1024 * 1024 * 10,  # 10MB
-        'use_threads': True
-    }
+    # Remove AWS_S3_TRANSFER_CONFIG as it can cause issues with django-storages
     
     # Use S3 for media files
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     
     # Update media URL to use S3
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+    
+    print(f"Using S3 storage: {AWS_STORAGE_BUCKET_NAME} in {AWS_S3_REGION_NAME}")
 else:
     # Local development settings
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    print("Using local file storage")
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -320,7 +320,7 @@ CKEDITOR_5_CONFIGS = {
     }
 }
 # CKEditor storage configuration
-if not DEBUG:
+if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
     CKEDITOR_5_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 else:
     CKEDITOR_5_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"

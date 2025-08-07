@@ -215,15 +215,17 @@ class BlogPostListSerializer(serializers.ModelSerializer):
         # Debug print
         import logging
         logger = logging.getLogger('django')
-        logger.info(f"BlogPostSerializer.to_internal_value received data: {data}")
+        logger.info(f"BlogPostListSerializer.to_internal_value received data: {data}")
         
         # Create a mutable copy of the data to avoid QueryDict immutable errors
+        # But avoid deep copying file objects which can't be pickled
         if hasattr(data, '_mutable'):
-            # It's a QueryDict, create a mutable copy
-            data = data.copy()
+            # It's a QueryDict, make it mutable without deep copying
+            if not data._mutable:
+                data._mutable = True
         else:
-            # It's a regular dict, create a copy to be safe
-            data = dict(data)
+            # It's a regular dict, create a shallow copy to be safe
+            data = data.copy()
         
         # Handle category_name if provided
         if 'category_name' in data and data['category_name']:
@@ -290,15 +292,17 @@ class BlogPostSerializer(serializers.ModelSerializer):
         # Debug print
         import logging
         logger = logging.getLogger('django')
-        logger.info(f"BlogPostListSerializer.to_internal_value received data: {data}")
+        logger.info(f"BlogPostSerializer.to_internal_value received data: {data}")
         
         # Create a mutable copy of the data to avoid QueryDict immutable errors
+        # But avoid deep copying file objects which can't be pickled
         if hasattr(data, '_mutable'):
-            # It's a QueryDict, create a mutable copy
-            data = data.copy()
+            # It's a QueryDict, make it mutable without deep copying
+            if not data._mutable:
+                data._mutable = True
         else:
-            # It's a regular dict, create a copy to be safe
-            data = dict(data)
+            # It's a regular dict, create a shallow copy to be safe
+            data = data.copy()
         
         # Handle category_name if provided
         if 'category_name' in data and data['category_name']:

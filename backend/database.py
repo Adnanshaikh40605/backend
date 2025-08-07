@@ -7,8 +7,8 @@ def get_database_config():
     Configure database using dj_database_url.
     Uses DATABASE_URL environment variable to connect to PostgreSQL.
     """
-    # Always use PostgreSQL now that it's set up
-    database_url = os.environ.get('DATABASE_URL', 'postgresql://postgres:adnan%4012@localhost:5432/blog_cms')
+    # Get database URL from environment, default to PostgreSQL for local development
+    database_url = os.environ.get('DATABASE_URL', 'postgresql://postgres:adnan12@localhost:5432/blog_cms')
     
     # Use dj_database_url to parse the DATABASE_URL environment variable
     return dj_database_url.config(
