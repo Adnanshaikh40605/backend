@@ -197,8 +197,9 @@ class BlogPostListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = BlogPost
-        fields = ['id', 'title', 'slug', 'excerpt', 'read_time', 'featured_image', 'featured_image_url', 
-                 'category', 'category_id', 'category_name', 'published', 'position', 'created_at', 'comment_count']
+        fields = ['id', 'title', 'slug', 'excerpt', 'read_time', 'featured_image_url', 
+                 'category', 'category_id', 'category_name', 'published', 'position', 'created_at', 'comment_count',
+                 'meta_title', 'meta_description']
     
     def get_featured_image_url(self, obj):
         if obj.featured_image:
@@ -271,17 +272,37 @@ class BlogPostSerializer(serializers.ModelSerializer):
     category_id = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), source='category', required=False, allow_null=True)
     category_name = serializers.CharField(write_only=True, required=False, allow_null=True)
     
+    # SEO Meta Fields with validation
+    meta_title = serializers.CharField(
+        max_length=60,
+        required=False,
+        allow_blank=True,
+        help_text="Max 60 characters for optimal SEO"
+    )
+    meta_description = serializers.CharField(
+        max_length=160,
+        required=False,
+        allow_blank=True,
+        help_text="Max 160 characters for optimal SEO"
+    )
+    
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         # Ensure category is properly included even if it's None
         if instance.category is None:
             representation['category'] = None
+        
+        # Use model methods for consistency (DRY principle)
+        representation['meta_title'] = representation['meta_title'] or instance.get_meta_title()
+        representation['meta_description'] = representation['meta_description'] or instance.get_meta_description()
+        
         return representation
     
     class Meta:
         model = BlogPost
-        fields = ['id', 'title', 'slug', 'content', 'excerpt', 'read_time', 'featured_image', 'featured_image_url', 'images', 'comments',
-                 'category', 'category_id', 'category_name', 'published', 'featured', 'position', 'created_at', 'updated_at']
+        fields = ['id', 'title', 'slug', 'content', 'excerpt', 'read_time', 'featured_image_url', 'images', 'comments',
+                 'category', 'category_id', 'category_name', 'published', 'featured', 'position', 'created_at', 'updated_at',
+                 'meta_title', 'meta_description']
     
     def get_featured_image_url(self, obj):
         if obj.featured_image:

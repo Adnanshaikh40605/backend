@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
+from . import views_dashboard
 
 # Create a router for ViewSets
 router = DefaultRouter()
@@ -32,4 +33,7 @@ urlpatterns = [
     # Image upload endpoints
     path('upload/quill/', views.QuillImageUploadView.as_view(), name='quill-image-upload'),
     path('upload/ckeditor/', views.CKEditorImageUploadView.as_view(), name='ckeditor-image-upload'),
+    
+    # Dashboard endpoints
+    path('dashboard/stats/', views_dashboard.dashboard_stats, name='dashboard-stats'),
 ]

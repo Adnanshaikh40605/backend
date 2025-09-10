@@ -67,11 +67,42 @@ class BlogPost(models.Model):
         default=0, 
         help_text='Estimated reading time in minutes (auto-calculated based on content)'
     )
+    # SEO Meta Fields
+    meta_title = models.CharField(
+        max_length=60,
+        blank=True,
+        null=True,
+        help_text="Title for SEO (recommended: 50–60 characters)"
+    )
+    meta_description = models.CharField(
+        max_length=160,
+        blank=True,
+        null=True,
+        help_text="Description for SEO (recommended: 150–160 characters)"
+    )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return self.title
+
+    def get_meta_title(self):
+        """Get meta title with fallback to regular title"""
+        return self.meta_title or self.title
+
+    def get_meta_description(self):
+        """Get meta description with fallback to excerpt or content"""
+        if self.meta_description:
+            return self.meta_description
+        elif self.excerpt:
+            return self.excerpt
+        elif self.content:
+            # Strip HTML tags and get first 155 characters
+            plain_text = strip_tags(self.content)
+            if len(plain_text) > 155:
+                return plain_text[:155] + "..."
+            return plain_text
+        return ""
 
     def calculate_read_time(self):
         """Calculate estimated reading time based on content"""
@@ -81,14 +112,27 @@ class BlogPost(models.Model):
         # Strip HTML tags and get plain text
         plain_text = strip_tags(self.content)
         
-        # Count words (average reading speed is 200-250 words per minute)
-        word_count = len(plain_text.split())
+        # Clean up extra whitespace and count words
+        words = [word for word in plain_text.split() if word.strip()]
+        word_count = len(words)
         
-        # Calculate read time (using 200 words per minute as average)
-        read_time = math.ceil(word_count / 200)
+        # If no words found, return minimum
+        if word_count == 0:
+            return 1
         
-        # Minimum 1 minute read time
-        return max(1, read_time)
+        # Calculate read time using more realistic reading speed
+        # Average reading speed is 200-250 words per minute for adults
+        # Using 200 words per minute for conservative estimate
+        read_time = word_count / 200
+        
+        # For very short content, ensure at least 1 minute
+        # For longer content, round up to nearest minute
+        if word_count < 50:
+            return 1
+        elif word_count < 200:
+            return 2
+        else:
+            return max(1, math.ceil(read_time))
     
     def generate_excerpt(self):
         """Generate excerpt from content if not provided"""

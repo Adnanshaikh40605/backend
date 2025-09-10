@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import BlogPost, BlogImage, Comment
 from django.utils.html import format_html
+from django.utils.text import Truncator
 
 class BlogImageInline(admin.TabularInline):
     model = BlogImage
@@ -21,9 +22,9 @@ class CommentInline(admin.TabularInline):
 
 @admin.register(BlogPost)
 class BlogPostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'slug', 'published', 'created_at', 'updated_at')
+    list_display = ('title', 'slug', 'published', 'get_meta_title_truncated', 'get_meta_description_truncated', 'created_at', 'updated_at')
     list_filter = ('published', 'created_at')
-    search_fields = ('title', 'content', 'slug')
+    search_fields = ('title', 'content', 'slug', 'meta_title', 'meta_description')
     prepopulated_fields = {'slug': ('title',)}
     inlines = [BlogImageInline, CommentInline]
     save_on_top = True
@@ -33,11 +34,15 @@ class BlogPostAdmin(admin.ModelAdmin):
     actions_on_bottom = True
     fieldsets = (
         ('Post Information', {
-            'fields': ('title', 'slug', 'content'),
+            'fields': ('title', 'slug', 'content', 'excerpt'),
             'classes': ('wide',),
         }),
+        ('SEO', {
+            'fields': ('meta_title', 'meta_description'),
+            'classes': ('collapse',),
+        }),
         ('Publication', {
-            'fields': ('published', 'featured_image'),
+            'fields': ('published', 'featured', 'featured_image', 'category', 'position'),
             'classes': ('collapse',),
         }),
         ('Timestamps', {
@@ -46,6 +51,16 @@ class BlogPostAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ('created_at', 'updated_at')
+
+    def get_meta_title_truncated(self, obj):
+        """Display truncated meta title in admin list"""
+        return Truncator(obj.meta_title or obj.title).chars(50)
+    get_meta_title_truncated.short_description = "Meta Title"
+
+    def get_meta_description_truncated(self, obj):
+        """Display truncated meta description in admin list"""
+        return Truncator(obj.meta_description or obj.excerpt or "").chars(80)
+    get_meta_description_truncated.short_description = "Meta Description"
 
     def view_on_site(self, obj):
         return f"/api/posts/{obj.slug}/"
