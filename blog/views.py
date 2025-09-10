@@ -4,6 +4,7 @@ from .views_comments import CommentViewSet, comment_counts, comment_action
 from .views_users import UserProfileView
 from .views_images import BlogImageViewSet
 from .views_categories import CategoryViewSet, get_related_posts
+from .views_upload import QuillImageUploadView, CKEditorImageUploadView
 
 # Export all views
 __all__ = [
@@ -17,4 +18,6 @@ __all__ = [
     'BlogImageViewSet',
     'CategoryViewSet',
     'get_related_posts',
+    'QuillImageUploadView',
+    'CKEditorImageUploadView',
 ]

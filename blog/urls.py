@@ -28,4 +28,8 @@ urlpatterns = [
     
     # Related posts endpoint
     path('posts/<slug:slug>/related/', views.get_related_posts, name='related-posts'),
+    
+    # Image upload endpoints
+    path('upload/quill/', views.QuillImageUploadView.as_view(), name='quill-image-upload'),
+    path('upload/ckeditor/', views.CKEditorImageUploadView.as_view(), name='ckeditor-image-upload'),
 ]
