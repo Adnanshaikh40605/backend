@@ -43,8 +43,20 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     queryset = BlogPost.objects.all().order_by('-created_at')
     serializer_class = BlogPostSerializer
     lookup_field = 'slug'  # Use slug instead of pk for all operations
-    permission_classes = [AllowAny]
     pagination_class = BlogPostPagination
+    
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.action in ['list', 'retrieve']:
+            # Allow anyone to view published posts
+            permission_classes = [AllowAny]
+        else:
+            # Require authentication for create, update, delete
+            permission_classes = [IsAuthenticated]
+        
+        return [permission() for permission in permission_classes]
     
     def get_serializer_class(self):
         if self.action == 'list':

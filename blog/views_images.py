@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions, status
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from drf_yasg.utils import swagger_auto_schema
@@ -18,7 +19,19 @@ class BlogImageViewSet(viewsets.ModelViewSet):
     queryset = BlogImage.objects.all()
     serializer_class = BlogImageSerializer
     parser_classes = [MultiPartParser, FormParser]
-    permission_classes = [permissions.AllowAny]  # Allow any user to access blog images
+    
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.action in ['list', 'retrieve']:
+            # Allow anyone to view images
+            permission_classes = [AllowAny]
+        else:
+            # Require authentication for create, update, delete
+            permission_classes = [IsAuthenticated]
+        
+        return [permission() for permission in permission_classes]
     
     @swagger_auto_schema(
         operation_description="List all blog images",

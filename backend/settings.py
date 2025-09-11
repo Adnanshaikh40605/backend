@@ -205,7 +205,7 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.FormParser',
         'rest_framework.parsers.MultiPartParser',
     ],
-    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],
+    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
@@ -241,35 +241,36 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
 
-# CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'
+# CORS Configuration - SECURED
+CORS_ALLOW_ALL_ORIGINS = False  # Disable all origins for security
 CORS_ALLOW_CREDENTIALS = True  # Allow credentials
 
-# Get CORS allowed origins from environment or use a default list
+# Get CORS allowed origins from environment or use secure defaults
 cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
-# If env variable is empty, add some sensible defaults
+# If env variable is empty, use only the specified secure origins
 if not cors_origins or cors_origins == [""]:
     cors_origins = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://backend-production-92ae.up.railway.app",
+        "https://www.vacationbna.com",
         "https://dohblog.vercel.app",
-        "https://blog-website-sigma-one.vercel.app"
+        "https://backend-production-92ae.up.railway.app",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5173"
     ]
 # Clean up any URLs with trailing slashes
 cors_origins = [origin.rstrip('/') for origin in cors_origins if origin.strip()]
 CORS_ALLOWED_ORIGINS = cors_origins
 
-# CSRF Trusted Origins
+# CSRF Trusted Origins - SECURED
 csrf_trusted_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
 if not csrf_trusted_origins or csrf_trusted_origins == [""]:
     csrf_trusted_origins = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://backend-production-92ae.up.railway.app",
-        "https://blog-cms-frontend-ten.vercel.app",
+        "https://www.vacationbna.com",
         "https://dohblog.vercel.app",
-        "https://blog-website-sigma-one.vercel.app"
+        "https://backend-production-92ae.up.railway.app",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5173"
     ]
 CSRF_TRUSTED_ORIGINS = csrf_trusted_origins
 
