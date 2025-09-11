@@ -25,13 +25,8 @@ class CommentViewSet(viewsets.ModelViewSet):
         """
         Instantiates and returns the list of permissions that this view requires.
         """
-        if self.action in ['list', 'retrieve']:
-            # Allow anyone to view comments
-            permission_classes = [AllowAny]
-        else:
-            # Require authentication for create, update, delete
-            permission_classes = [IsAuthenticated]
-        
+        # Require authentication for ALL actions
+        permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
     
     @swagger_auto_schema(
@@ -624,7 +619,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def comment_counts(request):
     """Get all comment counts categorized by status"""
     # For public API, count top-level comments only
@@ -653,7 +648,7 @@ def comment_counts(request):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def comment_action(request, action, comment_id=None):
     """Perform actions on comments (approve, unapprove, trash, restore, delete)"""
     # Handle comment_id from URL or request body

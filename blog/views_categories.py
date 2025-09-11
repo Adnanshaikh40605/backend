@@ -44,13 +44,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
         """
         Instantiates and returns the list of permissions that this view requires.
         """
-        if self.action in ['list', 'retrieve']:
-            # Allow anyone to view categories
-            permission_classes = [AllowAny]
-        else:
-            # Require authentication for create, update, delete
-            permission_classes = [IsAuthenticated]
-        
+        # Require authentication for ALL actions
+        permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(
@@ -183,7 +178,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     }
 )
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def get_related_posts(request, slug):
     """
     Get related posts for a specific blog post.

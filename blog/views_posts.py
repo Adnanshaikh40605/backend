@@ -49,13 +49,8 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         """
         Instantiates and returns the list of permissions that this view requires.
         """
-        if self.action in ['list', 'retrieve']:
-            # Allow anyone to view published posts
-            permission_classes = [AllowAny]
-        else:
-            # Require authentication for create, update, delete
-            permission_classes = [IsAuthenticated]
-        
+        # Require authentication for ALL actions
+        permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
     
     def get_serializer_class(self):
@@ -522,7 +517,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     }
 )
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def get_post_by_slug(request, slug):
     """Get a blog post by its slug"""
     post = get_object_or_404(BlogPost, slug=slug)
@@ -550,7 +545,7 @@ def get_post_by_slug(request, slug):
     }
 )
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def get_all_slugs(request):
     """Get a list of all blog post slugs"""
     # Get all slugs from published blog posts

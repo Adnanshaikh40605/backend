@@ -1,6 +1,6 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth.models import User
 import logging
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     """View for retrieving and updating user profile"""
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
     
     def get_object(self):
         return self.request.user
