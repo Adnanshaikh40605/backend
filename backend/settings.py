@@ -40,6 +40,11 @@ ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(",") if host.s
 if DEBUG and '*' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('*')
 
+# Site URL for schema generation and absolute URLs
+SITE_URL = os.environ.get('SITE_URL', 'https://www.vacationbna.com')
+if DEBUG:
+    SITE_URL = os.environ.get('SITE_URL', 'http://localhost:3000')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',

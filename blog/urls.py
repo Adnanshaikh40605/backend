@@ -27,6 +27,9 @@ urlpatterns = [
     # Endpoint for retrieving all post slugs
     path('all-slugs/', views.get_all_slugs, name='all-slugs'),
     
+    # Schema endpoint for SEO
+    path('posts/<slug:slug>/schema/', views.get_post_schema, name='post-schema'),
+    
     # Related posts endpoint
     path('posts/<slug:slug>/related/', views.get_related_posts, name='related-posts'),
     

@@ -197,9 +197,9 @@ class BlogPostListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = BlogPost
-        fields = ['id', 'title', 'slug', 'excerpt', 'read_time', 'featured_image_url', 
+        fields = ['id', 'title', 'slug', 'excerpt', 'read_time', 'featured_image', 'featured_image_url', 
                  'category', 'category_id', 'category_name', 'published', 'position', 'created_at', 'comment_count',
-                 'meta_title', 'meta_description']
+                 'meta_title', 'meta_description', 'schema_headline', 'schema_description', 'schema_image_alt']
     
     def get_featured_image_url(self, obj):
         if obj.featured_image:
@@ -286,6 +286,28 @@ class BlogPostSerializer(serializers.ModelSerializer):
         help_text="Max 160 characters for optimal SEO"
     )
     
+    # Schema.org JSON-LD Fields
+    schema_headline = serializers.CharField(
+        max_length=110,
+        required=False,
+        allow_blank=True,
+        help_text="Schema headline (max 110 characters)"
+    )
+    schema_description = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Schema description"
+    )
+    schema_image_alt = serializers.CharField(
+        max_length=125,
+        required=False,
+        allow_blank=True,
+        help_text="Alt text for schema image"
+    )
+    
+    # JSON-LD Schema output
+    json_ld_schema = serializers.SerializerMethodField(read_only=True)
+    
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         # Ensure category is properly included even if it's None
@@ -300,9 +322,9 @@ class BlogPostSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = BlogPost
-        fields = ['id', 'title', 'slug', 'content', 'excerpt', 'read_time', 'featured_image_url', 'images', 'comments',
+        fields = ['id', 'title', 'slug', 'content', 'excerpt', 'read_time', 'featured_image', 'featured_image_url', 'images', 'comments',
                  'category', 'category_id', 'category_name', 'published', 'featured', 'position', 'created_at', 'updated_at',
-                 'meta_title', 'meta_description']
+                 'meta_title', 'meta_description', 'schema_headline', 'schema_description', 'schema_image_alt', 'json_ld_schema']
     
     def get_featured_image_url(self, obj):
         if obj.featured_image:
@@ -335,6 +357,11 @@ class BlogPostSerializer(serializers.ModelSerializer):
         })
         
         return CommentSerializer(approved_comments, many=True, context=context).data
+    
+    def get_json_ld_schema(self, obj):
+        """Get JSON-LD schema for this blog post"""
+        request = self.context.get('request')
+        return obj.generate_json_ld_schema(request)
         
     def to_internal_value(self, data):
         # Debug print

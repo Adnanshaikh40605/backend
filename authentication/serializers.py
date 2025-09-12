@@ -27,7 +27,17 @@ class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for User model
     """
+    permissions = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'is_staff')
-        read_only_fields = ('id', 'is_staff') 
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'permissions')
+        read_only_fields = ('id', 'is_staff', 'permissions')
+    
+    def get_permissions(self, obj):
+        """Get user permissions in the format expected by frontend"""
+        return {
+            'is_staff': obj.is_staff,
+            'is_superuser': obj.is_superuser,
+            'is_active': obj.is_active
+        } 

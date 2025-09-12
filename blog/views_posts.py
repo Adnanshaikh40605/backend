@@ -194,6 +194,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         
         # Log request data for debugging
         logger.debug(f"Request data: {request.data}")
+        logger.debug(f"Request files: {request.FILES}")
         
         # Extract additional images from form data if present
         additional_images = []
@@ -217,6 +218,12 @@ class BlogPostViewSet(viewsets.ModelViewSet):
                 
             # Update the request data
             request._full_data = data
+        
+        # Log featured image handling
+        if 'featured_image' in request.FILES:
+            logger.info(f"Featured image found: {request.FILES['featured_image'].name}")
+        elif 'featured_image' in request.data:
+            logger.info(f"Featured image in data: {type(request.data['featured_image'])}")
         
         # Continue with normal processing
         serializer = self.get_serializer(data=request.data)
@@ -490,6 +497,16 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     )
     def update(self, request, *args, **kwargs):
         """Update a blog post"""
+        logger.info(f"Updating blog post with content type: {request.content_type}")
+        logger.debug(f"Request data: {request.data}")
+        logger.debug(f"Request files: {request.FILES}")
+        
+        # Log featured image handling
+        if 'featured_image' in request.FILES:
+            logger.info(f"Featured image found in update: {request.FILES['featured_image'].name}")
+        elif 'featured_image' in request.data:
+            logger.info(f"Featured image in update data: {type(request.data['featured_image'])}")
+        
         return super().update(request, *args, **kwargs)
 
     @swagger_auto_schema(
@@ -551,3 +568,43 @@ def get_all_slugs(request):
     # Get all slugs from published blog posts
     slugs = BlogPost.objects.filter(published=True).order_by('-created_at').values_list('slug', flat=True)
     return Response({'slugs': list(slugs)})
+
+
+@swagger_auto_schema(
+    method='get',
+    tags=['Posts'],
+    operation_description="Get JSON-LD schema for a specific blog post",
+    responses={
+        200: openapi.Response(
+            description="JSON-LD schema for the blog post",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'schema': openapi.Schema(type=openapi.TYPE_STRING, description='JSON-LD schema as string'),
+                    'script_tag': openapi.Schema(type=openapi.TYPE_STRING, description='Complete script tag with schema')
+                }
+            )
+        ),
+        404: "Post not found"
+    }
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])  # Public endpoint for schema
+def get_post_schema(request, slug):
+    """Get JSON-LD schema for a blog post"""
+    try:
+        post = get_object_or_404(BlogPost, slug=slug, published=True)
+        
+        schema_json = post.generate_json_ld_schema(request)
+        script_tag = post.get_json_ld_script_tag(request)
+        
+        return Response({
+            'schema': schema_json,
+            'script_tag': script_tag
+        })
+    except Exception as e:
+        logger.error(f"Error generating schema for post {slug}: {str(e)}")
+        return Response(
+            {'error': 'Failed to generate schema'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
