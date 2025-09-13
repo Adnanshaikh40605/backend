@@ -193,6 +193,12 @@ class BlogPostListSerializer(serializers.ModelSerializer):
         # Ensure category is properly included even if it's None
         if instance.category is None:
             representation['category'] = None
+        
+        # Auto-generate schema fields if they are empty/null
+        representation['schema_headline'] = representation['schema_headline'] or instance.get_schema_headline()
+        representation['schema_description'] = representation['schema_description'] or instance.get_schema_description()
+        representation['schema_image_alt'] = representation['schema_image_alt'] or instance.get_schema_image_alt()
+        
         return representation
     
     class Meta:
@@ -317,6 +323,11 @@ class BlogPostSerializer(serializers.ModelSerializer):
         # Use model methods for consistency (DRY principle)
         representation['meta_title'] = representation['meta_title'] or instance.get_meta_title()
         representation['meta_description'] = representation['meta_description'] or instance.get_meta_description()
+        
+        # Auto-generate schema fields if they are empty/null
+        representation['schema_headline'] = representation['schema_headline'] or instance.get_schema_headline()
+        representation['schema_description'] = representation['schema_description'] or instance.get_schema_description()
+        representation['schema_image_alt'] = representation['schema_image_alt'] or instance.get_schema_image_alt()
         
         return representation
     
